@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Фитнес — одна страница с программами, тренерами, отзывами и тарифами.">
+    <title>FitLife — твой путь к форме</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header class="header" id="top">
+        <div class="container header__inner">
+            <a href="#top" class="logo">FitLife</a>
+            <nav class="nav" id="nav">
+                <a href="#about" class="nav__link">О нас</a>
+                <a href="#benefits" class="nav__link">Преимущества</a>
+                <a href="#programs" class="nav__link">Программы</a>
+                <a href="#coaches" class="nav__link">Тренеры</a>
+                <a href="#reviews" class="nav__link">Отзывы</a>
+                <a href="#pricing" class="nav__link">Тарифы</a>
+                <a href="#cta" class="nav__btn btn btn--sm">Записаться</a>
+            </nav>
+            <button class="burger" id="burger" aria-label="Открыть меню" aria-controls="nav" aria-expanded="false">
+                <span></span><span></span><span></span>
+            </button>
+        </div>
+    </header>
+
+    <main>
+        <section class="hero" aria-label="Главный экран">
+            <div class="bg-grid" aria-hidden="true"></div>
+            <div class="container hero__inner">
+                <div class="hero__content">
+                    <h1>Сильнее каждый день</h1>
+                    <p>Тренируйся умно: персональные программы, поддержка тренеров и прогресс, который видно.</p>
+                    <div class="hero__actions">
+                        <a href="#programs" class="btn btn--primary">Выбрать программу</a>
+                        <a href="#about" class="btn btn--ghost">Узнать больше</a>
+                    </div>
+                    <div class="hero__stats">
+                        <div class="stat"><span class="num">10k+</span><span class="label">учеников</span></div>
+                        <div class="stat"><span class="num">120+</span><span class="label">тренеров</span></div>
+                        <div class="stat"><span class="num">4.9</span><span class="label">рейтинг</span></div>
+                    </div>
+                </div>
+                <div class="hero__media">
+                    <div class="card card--glass">
+                        <img src="https://images.unsplash.com/photo-1517836357463-d25dfeac3438?q=80&w=1200&auto=format&fit=crop" alt="Тренировка со штангой">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="section" id="about">
+            <div class="container grid-2">
+                <div class="section__content">
+                    <h2>О нас</h2>
+                    <p>Мы объединяем науку о тренировках, питание и поддержку сообщества. Приложение подбирает нагрузку под твои цели и график, а тренер помогает не сдаться.</p>
+                    <ul class="checklist">
+                        <li>Индивидуальные планы под любой уровень</li>
+                        <li>Трекинг прогресса и аналитика</li>
+                        <li>Поддержка 24/7 в чате</li>
+                    </ul>
+                </div>
+                <div class="media-stack">
+                    <img class="layer layer--1" src="https://images.unsplash.com/photo-1558611848-73f7eb4001a1?q=80&w=1200&auto=format&fit=crop" alt="Зал фитнеса">
+                    <img class="layer layer--2" src="https://images.unsplash.com/photo-1550345332-09e3ac987658?q=80&w=1200&auto=format&fit=crop" alt="Тренировка на коврике">
+                </div>
+            </div>
+        </section>
+
+        <section class="section section--alt" id="benefits">
+            <div class="container">
+                <h2 class="center">Почему FitLife</h2>
+                <div class="cards">
+                    <article class="card card--benefit">
+                        <div class="icon">💪</div>
+                        <h3>Умные тренировки</h3>
+                        <p>Алгоритмы распределяют нагрузку, чтобы ты прогрессировал без перетренированности.</p>
+                    </article>
+                    <article class="card card--benefit">
+                        <div class="icon">🥗</div>
+                        <h3>Питание под цели</h3>
+                        <p>Готовые планы питания и гибкие шаблоны под твой график.</p>
+                    </article>
+                    <article class="card card--benefit">
+                        <div class="icon">📈</div>
+                        <h3>Видимый прогресс</h3>
+                        <p>Графики, рекорды и отчёты, чтобы ты видел результат каждую неделю.</p>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <section class="section" id="programs">
+            <div class="container">
+                <h2 class="center">Программы</h2>
+                <div class="cards cards--programs">
+                    <article class="card card--program">
+                        <h3>Старт</h3>
+                        <p>4 недели. Техника, базовая сила, привычка тренироваться.</p>
+                        <ul>
+                            <li>3 тренировки/нед</li>
+                            <li>Видео-инструкции</li>
+                            <li>Поддержка чата</li>
+                        </ul>
+                        <a href="#pricing" class="btn btn--secondary">Выбрать</a>
+                    </article>
+                    <article class="card card--program">
+                        <h3>Сушка</h3>
+                        <p>8 недель. Дефицит калорий, силовые+HIIT, контроль веса.</p>
+                        <ul>
+                            <li>4 тренировки/нед</li>
+                            <li>План питания</li>
+                            <li>Еженедельный созвон</li>
+                        </ul>
+                        <a href="#pricing" class="btn btn--secondary">Выбрать</a>
+                    </article>
+                    <article class="card card--program">
+                        <h3>Масса</h3>
+                        <p>12 недель. Прогрессивная нагрузка, техника и питание на рост.</p>
+                        <ul>
+                            <li>4-5 тренировок/нед</li>
+                            <li>Планы под зал/дом</li>
+                            <li>Трекер прогресса</li>
+                        </ul>
+                        <a href="#pricing" class="btn btn--secondary">Выбрать</a>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <section class="section section--alt" id="coaches">
+            <div class="container">
+                <h2 class="center">Тренеры</h2>
+                <div class="cards cards--coaches">
+                    <article class="coach">
+                        <img src="https://images.unsplash.com/photo-1554306274-f23873d9a26a?q=80&w=800&auto=format&fit=crop" alt="Тренер Анна">
+                        <div class="coach__info">
+                            <h3>Анна</h3>
+                            <p>Силовой тренинг • 8 лет опыта</p>
+                        </div>
+                    </article>
+                    <article class="coach">
+                        <img src="https://images.unsplash.com/photo-1534361960057-19889db9621e?q=80&w=800&auto=format&fit=crop" alt="Тренер Илья">
+                        <div class="coach__info">
+                            <h3>Илья</h3>
+                            <p>Функциональный тренинг • 6 лет опыта</p>
+                        </div>
+                    </article>
+                    <article class="coach">
+                        <img src="https://images.unsplash.com/photo-1596357395104-5e7e0b6f9a3f?q=80&w=800&auto=format&fit=crop" alt="Тренер Мария">
+                        <div class="coach__info">
+                            <h3>Мария</h3>
+                            <p>HIIT и выносливость • 7 лет опыта</p>
+                        </div>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <section class="section" id="reviews">
+            <div class="container">
+                <h2 class="center">Отзывы</h2>
+                <div class="reviews">
+                    <article class="card card--glass quote">
+                        <p>«Минус 7 кг за два месяца и отличное самочувствие. Программа проста и понятна.»</p>
+                        <div class="quote__author">Екатерина</div>
+                    </article>
+                    <article class="card card--glass quote">
+                        <p>«Наконец-то системный подход: тренер, питание и контроль прогресса в одном месте.»</p>
+                        <div class="quote__author">Дмитрий</div>
+                    </article>
+                    <article class="card card--glass quote">
+                        <p>«Силовые выросли, а боли в спине ушли. Спасибо за внимание к технике!»</p>
+                        <div class="quote__author">Олег</div>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <section class="section section--alt" id="pricing">
+            <div class="container">
+                <h2 class="center">Тарифы</h2>
+                <div class="cards cards--pricing">
+                    <article class="card price">
+                        <h3>Базовый</h3>
+                        <div class="price__value">990 ₽/мес</div>
+                        <ul>
+                            <li>Программы тренировок</li>
+                            <li>Общая поддержка</li>
+                        </ul>
+                        <a href="#cta" class="btn btn--secondary">Начать</a>
+                    </article>
+                    <article class="card price price--highlight">
+                        <div class="badge">Популярно</div>
+                        <h3>Премиум</h3>
+                        <div class="price__value">2 490 ₽/мес</div>
+                        <ul>
+                            <li>Персональный тренер</li>
+                            <li>Индивидуальный рацион</li>
+                            <li>Еженедельные созвоны</li>
+                        </ul>
+                        <a href="#cta" class="btn btn--primary">Выбрать</a>
+                    </article>
+                    <article class="card price">
+                        <h3>Годовой</h3>
+                        <div class="price__value">19 900 ₽/год</div>
+                        <ul>
+                            <li>Все функции Премиум</li>
+                            <li>2 месяца в подарок</li>
+                        </ul>
+                        <a href="#cta" class="btn btn--secondary">Оформить</a>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <section class="section cta" id="cta">
+            <div class="container cta__inner">
+                <h2>Готов начать?</h2>
+                <p>Оставь e‑mail — отправим пробный доступ и план на неделю.</p>
+                <form class="cta__form" id="ctaForm">
+                    <input type="email" name="email" placeholder="you@example.com" required>
+                    <button type="submit" class="btn btn--primary">Получить доступ</button>
+                </form>
+                <div class="cta__note" id="ctaNote" role="status" aria-live="polite"></div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="container footer__inner">
+            <div class="footer__brand">© <span id="year"></span> FitLife</div>
+            <nav class="footer__nav">
+                <a href="#about">О нас</a>
+                <a href="#programs">Программы</a>
+                <a href="#pricing">Тарифы</a>
+            </nav>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+    <noscript>Для полного функционала включите JavaScript.</noscript>
+</body>
+<!-- Изображения с Unsplash. Для продакшена замените на локальные и оптимизированные. -->
+ </html>
+
+
