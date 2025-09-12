@@ -9,11 +9,12 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="todo-styles.css">
+    <!-- Библиотека Telegram WebApp для работы внутри Telegram -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
     <div class="app">
-        <!-- Header -->
+        <!-- Шапка приложения: аватар/имя пользователя и счетчик задач -->
         <header class="header">
             <div class="header__user">
                 <div class="user-avatar" id="userAvatar">👤</div>
@@ -27,7 +28,7 @@
             </div>
         </header>
 
-        <!-- Add Task Form -->
+        <!-- Форма добавления новой задачи -->
         <section class="add-task">
             <form class="add-task__form" id="addTaskForm">
                 <input 
@@ -47,7 +48,7 @@
             </form>
         </section>
 
-        <!-- Filters -->
+        <!-- Фильтры списка задач: Все / Активные / Выполненные -->
         <nav class="filters">
             <button class="filter-btn filter-btn--active" data-filter="all">
                 Все <span class="filter-count" id="allCount">0</span>
@@ -60,19 +61,19 @@
             </button>
         </nav>
 
-        <!-- Task List -->
+        <!-- Список задач -->
         <main class="task-list" id="taskList">
-            <!-- Empty state -->
+            <!-- Состояние пустого списка (показывается, когда задач нет под выбранный фильтр) -->
             <div class="empty-state" id="emptyState">
                 <div class="empty-state__icon">📝</div>
                 <h2 class="empty-state__title">Пока нет задач</h2>
                 <p class="empty-state__text">Добавьте первую задачу, чтобы начать планировать свой день</p>
             </div>
 
-            <!-- Tasks will be rendered here -->
+            <!-- Задачи будут динамически добавляться сюда из шаблона ниже -->
         </main>
 
-        <!-- Bulk Actions (shown when tasks exist) -->
+        <!-- Массовые действия: появляются, когда есть выполненные задачи -->
         <footer class="bulk-actions" id="bulkActions" style="display: none;">
             <button class="bulk-btn" id="clearCompleted">
                 Очистить выполненные
@@ -83,7 +84,7 @@
         </footer>
     </div>
 
-    <!-- Task Template -->
+    <!-- Шаблон одной задачи. JS-код клонирует содержимое template и наполняет данными -->
     <template id="taskTemplate">
         <article class="task" data-id="">
             <div class="task__content">
@@ -114,7 +115,9 @@
         </article>
     </template>
 
+    <!-- Локальный модуль хранилища задач (LocalStorage + опционально Telegram CloudStorage) -->
     <script src="storage.js"></script>
+    <!-- Основная логика приложения ToDo -->
     <script src="todo-script.js"></script>
 </body>
 </html>

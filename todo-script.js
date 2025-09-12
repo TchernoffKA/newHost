@@ -1,3 +1,9 @@
+/**
+ * Приложение ToDo для Telegram Mini App и обычного браузера
+ * - Хранение задач в LocalStorage и (опционально) в Telegram CloudStorage
+ * - Поддержка тем Telegram и тактильного отклика
+ * - Редактирование, фильтрация и массовые действия над задачами
+ */
 class TodoApp {
   constructor() {
     this.tasks = [];
@@ -16,31 +22,31 @@ class TodoApp {
     this.render();
   }
 
-  // Telegram WebApp initialization
+  // Инициализация Telegram WebApp (если доступен)
   initTelegram() {
     if (window.Telegram && window.Telegram.WebApp) {
       const tg = window.Telegram.WebApp;
       
-      // Expand the app to full height
+      // Развернуть приложение на всю высоту экрана внутри Telegram
       tg.expand();
       
-      // Apply Telegram theme
+      // Применить тему Telegram к CSS‑переменным
       this.applyTelegramTheme(tg.themeParams);
       
-      // Get user info
+      // Получить данные пользователя Telegram (если доступны)
       this.tgUser = tg.initDataUnsafe?.user;
       if (this.storage) {
         this.storage.setUser(this.tgUser);
       }
       this.updateUserInfo();
       
-      // Setup main button
+      // Настроить основную кнопку Telegram (MainButton)
       tg.MainButton.setText('Добавить задачу');
       tg.MainButton.onClick(() => {
         document.getElementById('taskInput').focus();
       });
       
-      // Show main button only when input is focused
+      // Показывать основную кнопку только при фокусе в поле ввода
       const taskInput = document.getElementById('taskInput');
       if (taskInput) {
         taskInput.addEventListener('focus', () => {
@@ -53,7 +59,7 @@ class TodoApp {
         });
       }
       
-      // Handle back button
+      // Обработка системной кнопки «Назад» в Telegram
       tg.BackButton.onClick(() => {
         if (this.editingTaskId) {
           this.cancelEditing();
@@ -61,13 +67,13 @@ class TodoApp {
         }
       });
       
-      // Enable closing confirmation
+      // Включить подтверждение закрытия мини‑приложения
       tg.enableClosingConfirmation();
       
       console.log('Telegram WebApp initialized', tg.version);
     } else {
       console.log('Not running in Telegram WebApp');
-      // Fallback for web browser
+      // Режим работы в обычном браузере (без Telegram)
       if (this.storage) {
         this.storage.setUser(null);
       }
@@ -75,12 +81,16 @@ class TodoApp {
     }
   }
 
+  /**
+   * Применяет цвета темы Telegram к CSS‑переменным документа
+   * @param {object} themeParams параметры темы Telegram
+   */
   applyTelegramTheme(themeParams) {
     if (!themeParams) return;
     
     const root = document.documentElement;
     
-    // Map Telegram theme to CSS variables
+    // Сопоставление ключей темы Telegram с CSS‑переменными
     const themeMap = {
       'bg_color': '--tg-theme-bg-color',
       'text_color': '--tg-theme-text-color',
@@ -98,10 +108,13 @@ class TodoApp {
       }
     });
     
-    // Set body background to match Telegram
+    // Установить фон body в цвет темы Telegram
     document.body.style.backgroundColor = themeParams.bg_color || '#ffffff';
   }
 
+  /**
+   * Обновляет отображение информации о пользователе (имя и аватар)
+   */
   updateUserInfo() {
     const userNameEl = document.getElementById('userName');
     const userAvatarEl = document.getElementById('userAvatar');
@@ -110,12 +123,12 @@ class TodoApp {
       const displayName = this.tgUser.first_name + (this.tgUser.last_name ? ` ${this.tgUser.last_name}` : '');
       userNameEl.textContent = displayName;
       
-      // Use first letter of first name as avatar
+      // В качестве аватара используем первую букву имени
       if (this.tgUser.first_name) {
         userAvatarEl.textContent = this.tgUser.first_name.charAt(0).toUpperCase();
       }
       
-      // Load user-specific tasks
+      // Загрузить задачи, привязанные к пользователю Telegram
       this.loadUserTasks();
     } else {
       userNameEl.textContent = 'Гость';
@@ -123,6 +136,9 @@ class TodoApp {
     }
   }
 
+  /**
+   * Возвращает ключ хранилища для текущего пользователя
+   */
   getUserStorageKey() {
     if (this.tgUser) {
       return `todo-tasks-${this.tgUser.id}`;
@@ -130,34 +146,34 @@ class TodoApp {
     return 'todo-tasks';
   }
 
-  // Event bindings
+  // Привязка обработчиков событий интерфейса
   bindEvents() {
-    // Add task form
+    // Форма добавления задачи
     const addTaskForm = document.getElementById('addTaskForm');
     addTaskForm.addEventListener('submit', (e) => this.handleAddTask(e));
 
-    // Filter buttons
+    // Кнопки фильтров (Все/Активные/Выполненные)
     const filterButtons = document.querySelectorAll('.filter-btn');
     filterButtons.forEach(btn => {
       btn.addEventListener('click', (e) => this.handleFilterChange(e));
     });
 
-    // Clear completed button
+    // Кнопка «Очистить выполненные»
     const clearCompletedBtn = document.getElementById('clearCompleted');
     clearCompletedBtn.addEventListener('click', () => this.clearCompleted());
 
-    // Share progress button
+    // Кнопка «Поделиться прогрессом»
     const shareProgressBtn = document.getElementById('shareProgress');
     shareProgressBtn.addEventListener('click', () => this.shareProgress());
 
-    // Task list event delegation
+    // Делегирование событий в списке задач (клики/клавиатура/blur)
     const taskList = document.getElementById('taskList');
     taskList.addEventListener('click', (e) => this.handleTaskAction(e));
     taskList.addEventListener('keydown', (e) => this.handleTaskKeydown(e));
     taskList.addEventListener('blur', (e) => this.handleTaskBlur(e), true);
   }
 
-  // Task management
+  // Управление задачами
   addTask(text) {
     const task = {
       id: Date.now().toString(),
@@ -170,7 +186,7 @@ class TodoApp {
     this.saveTasks();
     this.render();
     
-    // Add animation class
+    // Добавить класс анимации для плавного появления
     setTimeout(() => {
       const taskElement = document.querySelector(`[data-id="${task.id}"]`);
       if (taskElement) {
@@ -215,7 +231,7 @@ class TodoApp {
     this.render();
   }
 
-  // Event handlers
+  // Обработчики событий формы и списка
   handleAddTask(e) {
     e.preventDefault();
     const input = document.getElementById('taskInput');
@@ -225,12 +241,12 @@ class TodoApp {
       this.addTask(text);
       input.value = '';
       
-      // Hide Telegram main button
+      // Скрыть основную кнопку Telegram после добавления
       if (window.Telegram?.WebApp) {
         window.Telegram.WebApp.MainButton.hide();
       }
       
-      // Show haptic feedback
+      // Показать тактильный отклик об успешном действии
       this.showHapticFeedback('success');
     }
   }
@@ -275,7 +291,7 @@ class TodoApp {
     }
   }
 
-  // Editing functionality
+  // Редактирование задачи
   startEditing(taskId) {
     if (this.editingTaskId) {
       this.cancelEditing();
@@ -292,7 +308,7 @@ class TodoApp {
     inputElement.focus();
     inputElement.select();
     
-    // Show Telegram back button during editing
+    // Показать кнопку «Назад» Telegram во время редактирования
     if (window.Telegram?.WebApp) {
       window.Telegram.WebApp.BackButton.show();
     }
@@ -321,13 +337,13 @@ class TodoApp {
     
     this.editingTaskId = null;
     
-    // Hide Telegram back button
+    // Скрыть кнопку «Назад» Telegram после завершения редактирования
     if (window.Telegram?.WebApp) {
       window.Telegram.WebApp.BackButton.hide();
     }
   }
 
-  // Filtering
+  // Фильтрация задач
   getFilteredTasks() {
     switch (this.currentFilter) {
       case 'active':
@@ -339,7 +355,7 @@ class TodoApp {
     }
   }
 
-  // Rendering
+  // Отрисовка интерфейса
   render() {
     this.updateCounters();
     this.updateFilterButtons();
@@ -374,7 +390,7 @@ class TodoApp {
     const emptyState = document.getElementById('emptyState');
     const filteredTasks = this.getFilteredTasks();
 
-    // Clear existing tasks (except empty state)
+    // Очистить уже отрисованные элементы задач (не трогая блок пустого состояния)
     const existingTasks = taskList.querySelectorAll('.task');
     existingTasks.forEach(task => task.remove());
 
@@ -435,7 +451,7 @@ class TodoApp {
     bulkActions.style.display = hasCompletedTasks ? 'block' : 'none';
   }
 
-  // Telegram-specific methods
+  // Методы, специфичные для Telegram
   shareProgress() {
     const totalTasks = this.tasks.length;
     const completedTasks = this.tasks.filter(task => task.completed).length;
@@ -455,17 +471,17 @@ class TodoApp {
     }
     
     if (window.Telegram?.WebApp) {
-      // Try to share via Telegram
+      // Попытаться поделиться через Telegram (deeplink)
       window.Telegram.WebApp.openTelegramLink(`https://t.me/share/url?url=&text=${encodeURIComponent(message)}`);
     } else {
-      // Fallback for web
+      // Альтернатива для обычного веба
       if (navigator.share) {
         navigator.share({
           title: 'Мой прогресс в ToDo',
           text: message
         });
       } else {
-        // Copy to clipboard
+        // Скопировать текст в буфер обмена
         navigator.clipboard.writeText(message).then(() => {
           this.showNotification('Прогресс скопирован в буфер обмена');
         });
@@ -493,6 +509,7 @@ class TodoApp {
     }
   }
 
+  // Показ уведомлений пользователю (через Telegram Alert или стандартный alert)
   showNotification(message) {
     if (window.Telegram?.WebApp) {
       window.Telegram.WebApp.showAlert(message);
@@ -501,7 +518,7 @@ class TodoApp {
     }
   }
 
-  // Local storage with user-specific keys (delegated to TaskStorage)
+  // Хранение задач: делегируем в TaskStorage (учитывает пользователя)
   saveTasks() {
     try {
       this.storage.saveTasks(this.tasks);
@@ -532,16 +549,16 @@ class TodoApp {
   }
 }
 
-// Initialize app when DOM is loaded
+// Инициализировать приложение после загрузки DOM
 document.addEventListener('DOMContentLoaded', () => {
   new TodoApp();
 });
 
-// Service Worker registration (if available)
+// Регистрация Service Worker (если понадобится в будущем)
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', async () => {
     try {
-      // Will be implemented in next iteration
+      // Будет реализовано в одном из следующих релизов
       console.log('Service Worker support detected');
     } catch (error) {
       console.log('Service Worker registration failed:', error);

@@ -1,5 +1,5 @@
-// Simple storage module for user-scoped tasks with optional Telegram Cloud fallback
-// Exposes TaskStorage on window for non-module usage
+// Простой модуль хранения задач с привязкой к пользователю и опциональной синхронизацией через Telegram CloudStorage
+// Экспортирует TaskStorage в window для использования без модульной системы
 
 (function () {
   class TaskStorage {
@@ -7,10 +7,12 @@
       this.telegramUser = null;
     }
 
+    // Устанавливает текущего пользователя Telegram (или null для гостя)
     setUser(telegramUser) {
       this.telegramUser = telegramUser || null;
     }
 
+    // Возвращает ключ LocalStorage, уникальный для пользователя (если он задан)
     getStorageKey() {
       if (this.telegramUser?.id) {
         return `todo-tasks-${this.telegramUser.id}`;
@@ -18,30 +20,31 @@
       return 'todo-tasks';
     }
 
+    // Сохраняет задачи в LocalStorage и пытается продублировать в Telegram CloudStorage (если доступен)
     saveTasks(tasks) {
       try {
         const key = this.getStorageKey();
         localStorage.setItem(key, JSON.stringify(tasks || []));
 
-        // Save to Telegram Cloud Storage if available
+        // Сохранить в Telegram CloudStorage, если API доступен
         if (window.Telegram?.WebApp?.CloudStorage) {
           try {
             window.Telegram.WebApp.CloudStorage.setItem('tasks', JSON.stringify(tasks || []));
           } catch (e) {
-            console.warn('Telegram CloudStorage setItem failed:', e);
+            console.warn('Не удалось сохранить в Telegram CloudStorage:', e);
           }
         }
       } catch (error) {
-        console.error('TaskStorage.saveTasks failed:', error);
+        console.error('TaskStorage.saveTasks: ошибка сохранения:', error);
       }
     }
 
     /**
-     * Loads tasks from LocalStorage synchronously and then tries to fetch
-     * tasks from Telegram Cloud Storage asynchronously. If cloud tasks are
-     * available, calls onCloudUpdate(cloudTasks).
-     * @param {(tasks: any[]) => void} [onCloudUpdate]
-     * @returns {any[]} local tasks (parsed) or []
+     * Загружает задачи из LocalStorage синхронно и, при наличии, пытается
+     * получить задачи из Telegram CloudStorage асинхронно. Если облачные
+     * данные получены, вызывает onCloudUpdate(cloudTasks).
+     * @param {(tasks: any[]) => void} [onCloudUpdate] колбэк при получении данных из облака
+     * @returns {any[]} локальные задачи (распарсенные) или []
      */
     loadTasks(onCloudUpdate) {
       let localTasks = [];
@@ -52,16 +55,16 @@
           try {
             localTasks = JSON.parse(stored) || [];
           } catch (e) {
-            console.warn('Failed to parse local tasks, resetting to []:', e);
+            console.warn('Не удалось распарсить локальные задачи, сбрасываю в []:', e);
             localTasks = [];
           }
         }
       } catch (error) {
-        console.error('TaskStorage.loadTasks (local) failed:', error);
+        console.error('TaskStorage.loadTasks (local): ошибка чтения:', error);
         localTasks = [];
       }
 
-      // Try Telegram Cloud asynchronously
+      // Попытаться получить данные из Telegram CloudStorage асинхронно
       try {
         if (window.Telegram?.WebApp?.CloudStorage) {
           window.Telegram.WebApp.CloudStorage.getItem('tasks', (error, value) => {
@@ -72,13 +75,13 @@
                   onCloudUpdate(cloudTasks);
                 }
               } catch (e) {
-                console.error('TaskStorage.loadTasks cloud parse failed:', e);
+                console.error('TaskStorage.loadTasks: ошибка парсинга облачных данных:', e);
               }
             }
           });
         }
       } catch (e) {
-        console.warn('TaskStorage.loadTasks cloud fetch failed:', e);
+        console.warn('TaskStorage.loadTasks: не удалось получить данные из облака:', e);
       }
 
       return localTasks;
