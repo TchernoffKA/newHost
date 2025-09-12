@@ -1,0 +1,50 @@
+# Ignore deployment scripts and config
+deploy.ps1
+deploy.env.ps1
+
+
+# OS-specific
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Env and secrets
+.env
+.env.*
+*.pem
+*.key
+*.pfx
+*.crt
+
+# Editors/IDEs
+.vscode/
+.idea/
+*.code-workspace
+
+# Dependencies and build outputs
+node_modules/
+dist/
+build/
+.out/
+.cache/
+.parcel-cache/
+coverage/
+.tmp/
+temp/
+*.tmp
+*.bak
+
+# Archives
+*.zip
+*.tar
+*.gz
+*.7z
+
+
