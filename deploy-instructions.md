@@ -10,6 +10,7 @@ PowerShell скрипт не работает из-за HTTP-прокси. Ис�
 - `index.html` - главная страница приложения
 - `todo-script.js` - JavaScript функциональность
 - `todo-styles.css` - стили приложения
+- `storage.js` - модуль хранения задач и пользователя
 
 ## Способ 2: Ручная загрузка через FTP
 
@@ -27,6 +28,7 @@ PowerShell скрипт не работает из-за HTTP-прокси. Ис�
    - `index.html`
    - `todo-script.js` 
    - `todo-styles.css`
+   - `storage.js`
 
 ## Способ 3: Веб-интерфейс хостинга
 1. Войдите в панель управления хостингом
@@ -59,7 +61,7 @@ https://myfit.h1n.ru
 
 ## Команды для создания архива (если нужно пересоздать):
 ```powershell
-Compress-Archive -Path "index.html","todo-script.js","todo-styles.css" -DestinationPath "todo-miniapp-deploy.zip" -Force
+Compress-Archive -Path "index.html","todo-script.js","todo-styles.css","storage.js" -DestinationPath "todo-miniapp-deploy.zip" -Force
 ```
 
 ## Структура проекта после деплоя:
@@ -67,7 +69,8 @@ Compress-Archive -Path "index.html","todo-script.js","todo-styles.css" -Destinat
 /www/myfit.h1n.ru/
 ├── index.html          # Главная страница
 ├── todo-script.js      # JavaScript
-└── todo-styles.css     # Стили
+├── todo-styles.css     # Стили
+└── storage.js          # Модуль хранения
 ```
 
 ## Важно:

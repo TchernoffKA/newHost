@@ -4,6 +4,7 @@ class TodoApp {
     this.currentFilter = 'all';
     this.editingTaskId = null;
     this.tgUser = null;
+    this.storage = new TaskStorage();
     
     this.init();
   }
@@ -28,6 +29,9 @@ class TodoApp {
       
       // Get user info
       this.tgUser = tg.initDataUnsafe?.user;
+      if (this.storage) {
+        this.storage.setUser(this.tgUser);
+      }
       this.updateUserInfo();
       
       // Setup main button
@@ -64,6 +68,9 @@ class TodoApp {
     } else {
       console.log('Not running in Telegram WebApp');
       // Fallback for web browser
+      if (this.storage) {
+        this.storage.setUser(null);
+      }
       this.updateUserInfo();
     }
   }
@@ -494,16 +501,10 @@ class TodoApp {
     }
   }
 
-  // Local storage with user-specific keys
+  // Local storage with user-specific keys (delegated to TaskStorage)
   saveTasks() {
     try {
-      const key = this.getUserStorageKey();
-      localStorage.setItem(key, JSON.stringify(this.tasks));
-      
-      // Also save to Telegram Cloud Storage if available
-      if (window.Telegram?.WebApp?.CloudStorage) {
-        window.Telegram.WebApp.CloudStorage.setItem('tasks', JSON.stringify(this.tasks));
-      }
+      this.storage.saveTasks(this.tasks);
     } catch (error) {
       console.error('Failed to save tasks:', error);
     }
@@ -515,27 +516,15 @@ class TodoApp {
 
   loadUserTasks() {
     try {
-      const key = this.getUserStorageKey();
-      const stored = localStorage.getItem(key);
-      if (stored) {
-        this.tasks = JSON.parse(stored);
-      }
-      
-      // Try to load from Telegram Cloud Storage
-      if (window.Telegram?.WebApp?.CloudStorage) {
-        window.Telegram.WebApp.CloudStorage.getItem('tasks', (error, value) => {
-          if (!error && value) {
-            try {
-              const cloudTasks = JSON.parse(value);
-              // Merge with local tasks (cloud takes precedence)
-              this.tasks = cloudTasks;
-              this.render();
-            } catch (e) {
-              console.error('Failed to parse cloud tasks:', e);
-            }
-          }
-        });
-      }
+      const localTasks = this.storage.loadTasks((cloudTasks) => {
+        try {
+          this.tasks = Array.isArray(cloudTasks) ? cloudTasks : [];
+          this.render();
+        } catch (e) {
+          console.error('Failed to apply cloud tasks:', e);
+        }
+      });
+      this.tasks = Array.isArray(localTasks) ? localTasks : [];
     } catch (error) {
       console.error('Failed to load tasks:', error);
       this.tasks = [];
