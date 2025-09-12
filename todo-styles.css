@@ -1,0 +1,490 @@
+:root {
+  /* Telegram theme colors - will be overridden by JS */
+  --tg-theme-bg-color: #ffffff;
+  --tg-theme-text-color: #000000;
+  --tg-theme-hint-color: #999999;
+  --tg-theme-link-color: #2481cc;
+  --tg-theme-button-color: #2481cc;
+  --tg-theme-button-text-color: #ffffff;
+  --tg-theme-secondary-bg-color: #f1f1f1;
+  
+  /* App colors based on Telegram theme */
+  --bg-primary: var(--tg-theme-bg-color, #ffffff);
+  --bg-secondary: var(--tg-theme-bg-color, #ffffff);
+  --bg-accent: var(--tg-theme-secondary-bg-color, #f1f5f9);
+  --text-primary: var(--tg-theme-text-color, #1e293b);
+  --text-secondary: var(--tg-theme-hint-color, #64748b);
+  --text-muted: var(--tg-theme-hint-color, #94a3b8);
+  --border: color-mix(in srgb, var(--tg-theme-text-color, #000) 10%, transparent);
+  --border-light: color-mix(in srgb, var(--tg-theme-text-color, #000) 5%, transparent);
+  --primary: var(--tg-theme-button-color, #3b82f6);
+  --primary-hover: color-mix(in srgb, var(--tg-theme-button-color, #3b82f6) 80%, #000);
+  --success: #10b981;
+  --danger: #ef4444;
+  --danger-hover: #dc2626;
+  --warning: #f59e0b;
+  
+  /* Spacing */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  
+  /* Border radius */
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  
+  /* Typography */
+  --font-size-sm: 14px;
+  --font-size-base: 16px;
+  --font-size-lg: 18px;
+  --font-size-xl: 20px;
+  --font-size-2xl: 24px;
+  
+  /* Transitions */
+  --transition-fast: 150ms ease;
+  --transition-base: 200ms ease;
+}
+
+/* Reset and base styles */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+button {
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+input {
+  font-family: inherit;
+  border: none;
+  outline: none;
+}
+
+/* App container */
+.app {
+  width: 100%;
+  min-height: 100vh;
+  background-color: var(--bg-primary);
+  /* Remove shadows and max-width for Telegram */
+}
+
+/* Header */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-md);
+  background-color: var(--bg-primary);
+  border-bottom: 1px solid var(--border-light);
+  /* Remove sticky for Telegram */
+}
+
+.header__user {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.user-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: var(--primary);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.user-info {
+  flex: 1;
+}
+
+.header__title {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.user-name {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.header__counter {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+/* Add task form */
+.add-task {
+  padding: var(--spacing-md);
+  background-color: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-light);
+}
+
+.add-task__form {
+  display: flex;
+  gap: var(--spacing-sm);
+  align-items: center;
+  background-color: var(--bg-accent);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-xs);
+  border: 2px solid transparent;
+  transition: border-color var(--transition-fast);
+}
+
+.add-task__form:focus-within {
+  border-color: var(--primary);
+}
+
+.add-task__input {
+  flex: 1;
+  padding: var(--spacing-md);
+  background: transparent;
+  font-size: var(--font-size-base);
+  color: var(--text-primary);
+}
+
+.add-task__input::placeholder {
+  color: var(--text-muted);
+}
+
+.add-task__btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background-color: var(--primary);
+  color: white;
+  border-radius: var(--radius-sm);
+  transition: background-color var(--transition-fast);
+}
+
+.add-task__btn:hover {
+  background-color: var(--primary-hover);
+}
+
+.add-task__btn:active {
+  transform: scale(0.95);
+}
+
+/* Filters */
+.filters {
+  display: flex;
+  padding: var(--spacing-md);
+  gap: var(--spacing-sm);
+  background-color: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-light);
+  overflow-x: auto;
+}
+
+.filter-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--text-secondary);
+  background-color: var(--bg-accent);
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+
+.filter-btn:hover {
+  background-color: var(--border);
+}
+
+.filter-btn--active {
+  background-color: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+.filter-count {
+  background-color: rgba(255, 255, 255, 0.2);
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.filter-btn--active .filter-count {
+  background-color: rgba(255, 255, 255, 0.3);
+}
+
+/* Task list */
+.task-list {
+  flex: 1;
+  padding: var(--spacing-md);
+  background-color: var(--bg-primary);
+}
+
+/* Empty state */
+.empty-state {
+  text-align: center;
+  padding: var(--spacing-xl) var(--spacing-md);
+  color: var(--text-secondary);
+}
+
+.empty-state__icon {
+  font-size: 48px;
+  margin-bottom: var(--spacing-md);
+}
+
+.empty-state__title {
+  margin: 0 0 var(--spacing-sm);
+  font-size: var(--font-size-xl);
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.empty-state__text {
+  margin: 0;
+  font-size: var(--font-size-base);
+  line-height: 1.6;
+}
+
+/* Task item */
+.task {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  background-color: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--spacing-sm);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-light);
+  transition: all var(--transition-fast);
+}
+
+.task:hover {
+  box-shadow: var(--shadow-md);
+  border-color: var(--border);
+}
+
+.task--completed {
+  opacity: 0.6;
+}
+
+.task--completed .task__text {
+  text-decoration: line-through;
+  color: var(--text-muted);
+}
+
+.task__content {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  flex: 1;
+  min-width: 0;
+}
+
+.task__toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--border);
+  border-radius: 50%;
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.task__toggle:hover {
+  border-color: var(--success);
+}
+
+.task--completed .task__toggle {
+  background-color: var(--success);
+  border-color: var(--success);
+  color: white;
+}
+
+.task__check {
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.task--completed .task__check {
+  opacity: 1;
+}
+
+.task__text-wrapper {
+  flex: 1;
+  min-width: 0;
+}
+
+.task__text {
+  display: block;
+  font-size: var(--font-size-base);
+  word-wrap: break-word;
+  line-height: 1.4;
+}
+
+.task__input {
+  width: 100%;
+  padding: var(--spacing-xs) 0;
+  font-size: var(--font-size-base);
+  background-color: var(--bg-accent);
+  border-radius: var(--radius-sm);
+  padding: var(--spacing-xs) var(--spacing-sm);
+}
+
+.task__actions {
+  display: flex;
+  gap: var(--spacing-xs);
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.task:hover .task__actions {
+  opacity: 1;
+}
+
+.task__edit-btn,
+.task__delete-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  transition: all var(--transition-fast);
+}
+
+.task__edit-btn:hover {
+  background-color: var(--bg-accent);
+  color: var(--primary);
+}
+
+.task__delete-btn:hover {
+  background-color: rgba(239, 68, 68, 0.1);
+  color: var(--danger);
+}
+
+/* Bulk actions */
+.bulk-actions {
+  padding: var(--spacing-md);
+  background-color: var(--bg-primary);
+  border-top: 1px solid var(--border-light);
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+.bulk-btn {
+  flex: 1;
+  padding: var(--spacing-md);
+  background-color: var(--bg-accent);
+  color: var(--text-secondary);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  transition: all var(--transition-fast);
+}
+
+.bulk-btn:hover {
+  background-color: var(--danger);
+  color: white;
+}
+
+.bulk-btn--share {
+  background-color: var(--primary);
+  color: var(--tg-theme-button-text-color, white);
+}
+
+.bulk-btn--share:hover {
+  background-color: var(--primary-hover);
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+  .app {
+    box-shadow: none;
+  }
+  
+  .header {
+    padding: var(--spacing-md);
+  }
+  
+  .task {
+    padding: var(--spacing-sm) var(--spacing-md);
+  }
+  
+  .task__actions {
+    opacity: 1; /* Always show on mobile */
+  }
+}
+
+/* Focus styles for accessibility */
+button:focus-visible,
+input:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* Animation for task addition */
+.task--entering {
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Animation for task removal */
+.task--removing {
+  animation: slideOut 0.3s ease-in forwards;
+}
+
+@keyframes slideOut {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+}
