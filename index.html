@@ -43,8 +43,8 @@
             </div>
         </header>
 
-        <!-- Форма добавления новой задачи -->
-        <section class="add-task">
+        <!-- Форма добавления новой задачи (скрыта, заменена FAB + модаль) -->
+        <section class="add-task" style="display: none;">
             <form class="add-task__form" id="addTaskForm">
                 <input 
                     type="text" 
@@ -53,6 +53,12 @@
                     placeholder="Добавить новую задачу..."
                     maxlength="200"
                     required
+                >
+                <input
+                    type="datetime-local"
+                    class="add-task__datetime"
+                    id="taskDatetime"
+                    aria-label="Дата и время выполнения"
                 >
                 <button type="submit" class="add-task__btn" aria-label="Добавить задачу">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -99,6 +105,102 @@
         </footer>
     </div>
 
+    <!-- Floating Action Button (Add Task) -->
+    <button class="fab" id="openAddTaskModal" aria-label="Добавить задачу">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="m18 2 4 4-14 14H4v-4z"></path>
+            <path d="m14.5 5.5 4 4"></path>
+        </svg>
+    </button>
+
+    <!-- Modal: Add Task -->
+    <div class="modal" id="addTaskModal" aria-hidden="true">
+        <div class="modal__backdrop" data-close="modal"></div>
+        <div class="modal__dialog" role="dialog" aria-modal="true" aria-labelledby="addTaskTitle">
+            <header class="modal__header">
+                <h3 class="modal__title" id="addTaskTitle">Новая задача</h3>
+                <button class="modal__close" id="closeAddTaskModal" aria-label="Закрыть">✕</button>
+            </header>
+            <form class="modal__form" id="modalAddTaskForm">
+                <label class="modal__label" for="modalTaskInput">Текст задачи</label>
+                <div class="modal__input-row">
+                    <input 
+                        type="text" 
+                        class="modal__input" 
+                        id="modalTaskInput"
+                        placeholder="Например: Позвонить клиенту"
+                        maxlength="200"
+                        required
+                    >
+                    <span class="modal__char-counter" id="modalCharCounter">0/200</span>
+                </div>
+
+                <label class="modal__label" for="modalTaskDatetime">Дата и время</label>
+                <div class="modal__datetime-row">
+                    <input
+                        type="text"
+                        class="modal__datetime"
+                        id="modalTaskDatetime"
+                        placeholder="дд.мм.гггг чч:мм"
+                        readonly
+                        aria-label="Дата и время выполнения"
+                    >
+                    <button type="button" class="modal__btn" id="openDatePicker">Дата</button>
+                    <button type="button" class="modal__btn" id="openTimePicker">Время</button>
+                    <button type="button" class="modal__btn modal__btn--ghost" id="clearModalDatetime">Очистить</button>
+                </div>
+
+                <div class="modal__presets" aria-label="Быстрый выбор">
+                    <button type="button" class="preset" data-preset="plus1h">⏱️ +1 час</button>
+                    <button type="button" class="preset" data-preset="todayEvening">🌙 Сегодня вечером</button>
+                    <button type="button" class="preset" data-preset="tomorrowMorning">☀️ Завтра утром</button>
+                    <button type="button" class="preset" data-preset="weekend">🗓️ На выходных</button>
+                </div>
+
+                <div class="modal__actions">
+                    <button type="button" class="modal__btn" id="cancelAddTask">Отмена</button>
+                    <button type="submit" class="modal__btn modal__btn--primary" id="modalAddSubmit" disabled>Добавить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Date Picker -->
+    <div class="modal" id="datePickerModal" aria-hidden="true">
+        <div class="modal__backdrop" data-close="modal"></div>
+        <div class="modal__dialog" role="dialog" aria-modal="true" aria-labelledby="datePickerTitle">
+            <header class="modal__header">
+                <h3 class="modal__title" id="datePickerTitle">Выберите дату</h3>
+                <button class="modal__close" id="closeDatePicker" aria-label="Закрыть">✕</button>
+            </header>
+            <div class="calendar" id="calendar"></div>
+            <div class="modal__actions">
+                <button type="button" class="modal__btn" id="cancelDatePicker">Отмена</button>
+                <button type="button" class="modal__btn modal__btn--primary" id="applyDatePicker">Готово</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Time Picker -->
+    <div class="modal" id="timePickerModal" aria-hidden="true">
+        <div class="modal__backdrop" data-close="modal"></div>
+        <div class="modal__dialog" role="dialog" aria-modal="true" aria-labelledby="timePickerTitle">
+            <header class="modal__header">
+                <h3 class="modal__title" id="timePickerTitle">Выберите время</h3>
+                <button class="modal__close" id="closeTimePicker" aria-label="Закрыть">✕</button>
+            </header>
+            <div class="timepicker" id="timePicker">
+                <div class="timepicker__wheel" id="hourWheel"></div>
+                <span class="timepicker__sep">:</span>
+                <div class="timepicker__wheel" id="minuteWheel"></div>
+            </div>
+            <div class="modal__actions">
+                <button type="button" class="modal__btn" id="cancelTimePicker">Отмена</button>
+                <button type="button" class="modal__btn modal__btn--primary" id="applyTimePicker">Готово</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Шаблон одной задачи. JS-код клонирует содержимое template и наполняет данными -->
     <template id="taskTemplate">
         <article class="task" data-id="">
@@ -111,6 +213,9 @@
                 <div class="task__text-wrapper">
                     <span class="task__text"></span>
                     <input type="text" class="task__input" style="display: none;">
+                    <div class="task__meta">
+                        <span class="task__scheduled" data-datetime=""></span>
+                    </div>
                 </div>
             </div>
             <div class="task__actions">

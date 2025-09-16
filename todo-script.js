@@ -148,9 +148,11 @@ class TodoApp {
 
   // Привязка обработчиков событий интерфейса
   bindEvents() {
-    // Форма добавления задачи
+    // Форма добавления задачи (скрытая)
     const addTaskForm = document.getElementById('addTaskForm');
-    addTaskForm.addEventListener('submit', (e) => this.handleAddTask(e));
+    if (addTaskForm) {
+      addTaskForm.addEventListener('submit', (e) => this.handleAddTask(e));
+    }
 
     // Кнопки фильтров (Все/Активные/Выполненные)
     const filterButtons = document.querySelectorAll('.filter-btn');
@@ -171,15 +173,400 @@ class TodoApp {
     taskList.addEventListener('click', (e) => this.handleTaskAction(e));
     taskList.addEventListener('keydown', (e) => this.handleTaskKeydown(e));
     taskList.addEventListener('blur', (e) => this.handleTaskBlur(e), true);
+
+    // FAB + Modal
+    const openFab = document.getElementById('openAddTaskModal');
+    const modal = document.getElementById('addTaskModal');
+    const closeBtn = document.getElementById('closeAddTaskModal');
+    const cancelBtn = document.getElementById('cancelAddTask');
+    const modalForm = document.getElementById('modalAddTaskForm');
+    const clearDtBtn = document.getElementById('clearModalDatetime');
+    const charCounter = document.getElementById('modalCharCounter');
+    const modalText = document.getElementById('modalTaskInput');
+    const presetContainer = document.querySelector('.modal__presets');
+    const submitBtn = document.getElementById('modalAddSubmit');
+    const openDateBtn = document.getElementById('openDatePicker');
+    const openTimeBtn = document.getElementById('openTimePicker');
+    if (openFab && modal && closeBtn && cancelBtn && modalForm) {
+      openFab.addEventListener('click', () => this.openAddModal());
+      closeBtn.addEventListener('click', () => this.closeAddModal());
+      cancelBtn.addEventListener('click', () => this.closeAddModal());
+      modal.addEventListener('click', (e) => {
+        if (e.target.classList.contains('modal__backdrop')) this.closeAddModal();
+      });
+      modalForm.addEventListener('submit', (e) => this.handleModalAddTask(e));
+      if (clearDtBtn) clearDtBtn.addEventListener('click', () => {
+        const dt = document.getElementById('modalTaskDatetime');
+        if (dt) dt.value = '';
+      });
+
+      if (modalText && charCounter) {
+        const updateCounter = () => {
+          charCounter.textContent = `${modalText.value.length}/200`;
+          if (submitBtn) submitBtn.disabled = modalText.value.trim().length === 0;
+        };
+        modalText.addEventListener('input', updateCounter);
+        updateCounter();
+      }
+
+      if (presetContainer) {
+        presetContainer.addEventListener('click', (e) => {
+          const btn = e.target.closest('.preset');
+          if (!btn) return;
+          // toggle active preset
+          [...presetContainer.querySelectorAll('.preset')].forEach(b => b.classList.remove('preset--active'));
+          btn.classList.add('preset--active');
+          const dt = document.getElementById('modalTaskDatetime');
+          if (!dt) return;
+          const now = new Date();
+          let target = new Date(now);
+          switch (btn.dataset.preset) {
+            case 'plus1h':
+              target.setHours(target.getHours() + 1);
+              break;
+            case 'todayEvening':
+              target.setHours(19, 0, 0, 0);
+              break;
+            case 'tomorrowMorning':
+              target.setDate(target.getDate() + 1);
+              target.setHours(9, 0, 0, 0);
+              break;
+            case 'weekend': {
+              const day = target.getDay();
+              const delta = (6 - day + 7) % 7; // суббота
+              target.setDate(target.getDate() + (delta || 7));
+              target.setHours(11, 0, 0, 0);
+              break;
+            }
+          }
+          // Записываем в человекочитаемом формате поля
+          dt.value = this.formatFieldDatetime(target);
+        });
+      }
+
+      // Close on Esc
+      document.addEventListener('keydown', this._handleEscClose);
+
+      // Swipe-to-close
+      const dialog = modal.querySelector('.modal__dialog');
+      const backdrop = modal.querySelector('.modal__backdrop');
+      if (dialog && backdrop) {
+        let startY = 0;
+        let currentY = 0;
+        let dragging = false;
+        const threshold = 80;
+
+        const onTouchStart = (ev) => {
+          if (ev.touches.length !== 1) return;
+          dragging = true;
+          startY = ev.touches[0].clientY;
+          currentY = startY;
+        };
+        const onTouchMove = (ev) => {
+          if (!dragging) return;
+          currentY = ev.touches[0].clientY;
+          const delta = Math.max(0, currentY - startY);
+          dialog.style.transform = `translate(-50%, ${delta}px)`;
+          backdrop.style.opacity = String(Math.max(0, 1 - delta / 200));
+        };
+        const onTouchEnd = () => {
+          if (!dragging) return;
+          const delta = Math.max(0, currentY - startY);
+          dragging = false;
+          if (delta > threshold) {
+            this.closeAddModal();
+          } else {
+            // revert
+            dialog.style.transform = '';
+            backdrop.style.opacity = '';
+          }
+        };
+
+        dialog.addEventListener('touchstart', onTouchStart, { passive: true });
+        dialog.addEventListener('touchmove', onTouchMove, { passive: true });
+        dialog.addEventListener('touchend', onTouchEnd, { passive: true });
+      }
+
+      // Date/Time pickers
+      if (openDateBtn) openDateBtn.addEventListener('click', () => this.openDatePicker());
+      if (openTimeBtn) openTimeBtn.addEventListener('click', () => this.openTimePicker());
+    }
+  }
+
+  // ---------- Date Picker ----------
+  _selectedDate = null; // Date
+  openDatePicker() {
+    const m = document.getElementById('datePickerModal');
+    if (!m) return;
+    m.classList.add('modal--open');
+    document.body.style.overflow = 'hidden';
+    this.renderCalendar(new Date());
+    // bind controls
+    const close = () => this.closeDatePicker();
+    document.getElementById('closeDatePicker')?.addEventListener('click', close, { once: true });
+    document.getElementById('cancelDatePicker')?.addEventListener('click', close, { once: true });
+    document.getElementById('applyDatePicker')?.addEventListener('click', () => {
+      if (!this._selectedDate) return close();
+      this.applyDateToField();
+      close();
+    }, { once: true });
+    m.addEventListener('click', (e) => { if (e.target.classList.contains('modal__backdrop')) close(); }, { once: true });
+  }
+  closeDatePicker() {
+    const m = document.getElementById('datePickerModal');
+    if (!m) return;
+    m.classList.remove('modal--open');
+    document.body.style.overflow = '';
+  }
+  renderCalendar(baseDate) {
+    const container = document.getElementById('calendar');
+    if (!container) return;
+    container.innerHTML = '';
+    const year = baseDate.getFullYear();
+    const month = baseDate.getMonth();
+    // header
+    const header = document.createElement('div');
+    header.className = 'calendar__header';
+    const title = document.createElement('div');
+    title.textContent = baseDate.toLocaleString(undefined, { month: 'long', year: 'numeric' });
+    const nav = document.createElement('div');
+    nav.className = 'calendar__nav';
+    const prev = document.createElement('button'); prev.className = 'calendar__btn'; prev.textContent = '‹';
+    const next = document.createElement('button'); next.className = 'calendar__btn'; next.textContent = '›';
+    nav.append(prev, next); header.append(title, nav); container.append(header);
+    prev.addEventListener('click', () => this.renderCalendar(new Date(year, month - 1, 1)));
+    next.addEventListener('click', () => this.renderCalendar(new Date(year, month + 1, 1)));
+    // weekdays
+    const grid = document.createElement('div');
+    grid.className = 'calendar__grid';
+    const weekdays = new Intl.DateTimeFormat(undefined, { weekday: 'short' });
+    for (let d = 0; d < 7; d++) {
+      const day = new Date(2021, 7, d + 1); // arbitrary week
+      const cell = document.createElement('div');
+      cell.className = 'calendar__cell calendar__cell--weekday';
+      cell.textContent = weekdays.format(day);
+      grid.appendChild(cell);
+    }
+    // days
+    const firstDay = new Date(year, month, 1);
+    const startWeekday = (firstDay.getDay() + 6) % 7; // Mon=0
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const prevMonthDays = new Date(year, month, 0).getDate();
+    // prev tail
+    for (let i = 0; i < startWeekday; i++) {
+      const cell = document.createElement('div');
+      cell.className = 'calendar__cell calendar__cell--muted';
+      cell.textContent = String(prevMonthDays - startWeekday + i + 1);
+      grid.appendChild(cell);
+    }
+    // current month
+    for (let d = 1; d <= daysInMonth; d++) {
+      const cell = document.createElement('button');
+      cell.className = 'calendar__cell calendar__cell--day';
+      cell.textContent = String(d);
+      cell.addEventListener('click', () => {
+        this._selectedDate = new Date(year, month, d);
+        // highlight
+        grid.querySelectorAll('.calendar__cell--selected').forEach(el => el.classList.remove('calendar__cell--selected'));
+        cell.classList.add('calendar__cell--selected');
+      });
+      grid.appendChild(cell);
+    }
+    // next lead to complete 6 rows (42 cells + weekdays)
+    const totalCells = startWeekday + daysInMonth;
+    const add = (7 - (totalCells % 7)) % 7;
+    for (let i = 1; i <= add; i++) {
+      const cell = document.createElement('div');
+      cell.className = 'calendar__cell calendar__cell--muted';
+      cell.textContent = String(i);
+      grid.appendChild(cell);
+    }
+    container.appendChild(grid);
+  }
+  applyDateToField() {
+    const field = document.getElementById('modalTaskDatetime');
+    if (!field || !this._selectedDate) return;
+    const existing = this.parseFieldDatetime(field.value);
+    const hours = existing ? existing.getHours() : 9;
+    const minutes = existing ? existing.getMinutes() : 0;
+    this._selectedDate.setHours(hours, minutes, 0, 0);
+    field.value = this.formatFieldDatetime(this._selectedDate);
+  }
+
+  // ---------- Time Picker ----------
+  _selectedTime = { h: null, m: null };
+  openTimePicker() {
+    const m = document.getElementById('timePickerModal');
+    if (!m) return;
+    m.classList.add('modal--open');
+    document.body.style.overflow = 'hidden';
+    this.renderTimePicker();
+    const close = () => this.closeTimePicker();
+    document.getElementById('closeTimePicker')?.addEventListener('click', close, { once: true });
+    document.getElementById('cancelTimePicker')?.addEventListener('click', close, { once: true });
+    document.getElementById('applyTimePicker')?.addEventListener('click', () => {
+      this.applyTimeToField();
+      close();
+    }, { once: true });
+    m.addEventListener('click', (e) => { if (e.target.classList.contains('modal__backdrop')) close(); }, { once: true });
+  }
+  closeTimePicker() {
+    const m = document.getElementById('timePickerModal');
+    if (!m) return;
+    m.classList.remove('modal--open');
+    document.body.style.overflow = '';
+  }
+  renderTimePicker() {
+    const hourWheel = document.getElementById('hourWheel');
+    const minuteWheel = document.getElementById('minuteWheel');
+    if (!hourWheel || !minuteWheel) return;
+
+    const ITEM_H = 36;
+    const buildWheel = (wheel, values) => {
+      wheel.innerHTML = '';
+      wheel._values = values;
+      wheel._segmentLength = values.length;
+      wheel._itemHeight = ITEM_H;
+      wheel._segmentHeight = ITEM_H * values.length;
+      // dynamic paddings so активный элемент всегда по центру
+      const pad = Math.max(0, wheel.clientHeight / 2 - ITEM_H / 2);
+      wheel.style.paddingTop = `${pad}px`;
+      wheel.style.paddingBottom = `${pad}px`;
+      const makeItems = () => {
+        const frag = document.createDocumentFragment();
+        values.forEach((v) => {
+          const el = document.createElement('div');
+          el.className = 'timepicker__item';
+          el.textContent = String(v).padStart(2, '0');
+          el.dataset.value = String(v);
+          frag.appendChild(el);
+        });
+        return frag;
+      };
+      // три сегмента для бесконечной прокрутки
+      wheel.appendChild(makeItems());
+      wheel.appendChild(makeItems());
+      wheel.appendChild(makeItems());
+    };
+
+    const hours = Array.from({ length: 24 }, (_, i) => i);
+    const minutes = Array.from({ length: 60 }, (_, i) => i);
+    buildWheel(hourWheel, hours);
+    buildWheel(minuteWheel, minutes);
+
+    let snapping = { h: false, m: false };
+    const centerToIndex = (wheel, indexInSegment, kind) => {
+      const pad = parseFloat(getComputedStyle(wheel).paddingTop) || 0;
+      const globalIndex = wheel._segmentLength + indexInSegment; // середина
+      const targetTop = pad + globalIndex * wheel._itemHeight - (wheel.clientHeight / 2 - wheel._itemHeight / 2);
+      if (kind) snapping[kind] = true;
+      wheel.scrollTo({ top: targetTop, behavior: 'smooth' });
+      // сбросить флаг после завершения анимации
+      setTimeout(() => { if (kind) snapping[kind] = false; }, 160);
+    };
+
+    const updateActive = (wheel) => {
+      const pad = parseFloat(getComputedStyle(wheel).paddingTop) || 0;
+      const center = wheel.scrollTop + wheel.clientHeight / 2;
+      const pos = center - pad;
+      let idx = Math.round(pos / wheel._itemHeight);
+      idx = ((idx % wheel._segmentLength) + wheel._segmentLength) % wheel._segmentLength;
+      // highlight in middle segment
+      const items = [...wheel.querySelectorAll('.timepicker__item')];
+      items.forEach(el => el.classList.remove('timepicker__item--active'));
+      const targetGlobal = wheel._segmentLength + idx;
+      if (items[targetGlobal]) items[targetGlobal].classList.add('timepicker__item--active');
+      return idx;
+    };
+
+    const ensureLoop = (wheel) => {
+      const sH = wheel._segmentHeight;
+      if (wheel.scrollTop < sH * 0.5) {
+        wheel.scrollTop += sH;
+      } else if (wheel.scrollTop > sH * 1.5) {
+        wheel.scrollTop -= sH;
+      }
+    };
+
+    let hourDebounce, minuteDebounce;
+    hourWheel.addEventListener('scroll', () => {
+      if (snapping.h) return;
+      ensureLoop(hourWheel);
+      const idx = updateActive(hourWheel);
+      this._selectedTime.h = hourWheel._values[idx];
+      clearTimeout(hourDebounce);
+      hourDebounce = setTimeout(() => centerToIndex(hourWheel, idx, 'h'), 80);
+    }, { passive: true });
+    minuteWheel.addEventListener('scroll', () => {
+      if (snapping.m) return;
+      ensureLoop(minuteWheel);
+      const idx = updateActive(minuteWheel);
+      this._selectedTime.m = minuteWheel._values[idx];
+      clearTimeout(minuteDebounce);
+      minuteDebounce = setTimeout(() => centerToIndex(minuteWheel, idx, 'm'), 80);
+    }, { passive: true });
+
+    // init select from field or defaults
+    const field = document.getElementById('modalTaskDatetime');
+    const existing = this.parseFieldDatetime(field?.value || '');
+    const initH = existing ? existing.getHours() : 9;
+    const initM = existing ? existing.getMinutes() : 0;
+    // place at middle segment and center
+    hourWheel.scrollTop = hourWheel._segmentHeight + initH * ITEM_H;
+    minuteWheel.scrollTop = minuteWheel._segmentHeight + initM * ITEM_H;
+    // force activate and center
+    setTimeout(() => {
+      const hIdx = updateActive(hourWheel);
+      const mIdx = updateActive(minuteWheel);
+      centerToIndex(hourWheel, hIdx, 'h');
+      centerToIndex(minuteWheel, mIdx, 'm');
+      this._selectedTime.h = hourWheel._values[hIdx];
+      this._selectedTime.m = minuteWheel._values[mIdx];
+    }, 0);
+  }
+  applyTimeToField() {
+    const field = document.getElementById('modalTaskDatetime');
+    if (!field) return;
+    const base = this.parseFieldDatetime(field.value) || new Date();
+    const h = this._selectedTime.h ?? base.getHours();
+    const m = this._selectedTime.m ?? base.getMinutes();
+    base.setHours(h, m, 0, 0);
+    field.value = this.formatFieldDatetime(base);
+  }
+
+  // Helpers for field formatting
+  formatFieldDatetime(date) {
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${pad(date.getDate())}.${pad(date.getMonth()+1)}.${date.getFullYear()} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  }
+  parseFieldDatetime(val) {
+    if (!val) return null;
+    // ISO-like: 2025-09-18T09:00 or 2025-09-18 09:00
+    if (/^\d{4}-\d{2}-\d{2}/.test(val)) {
+      const iso = val.replace(' ', 'T');
+      const d = new Date(iso);
+      return isNaN(d.getTime()) ? null : d;
+    }
+    // Human format: dd.MM.yyyy HH:mm
+    const m = val.match(/(\d{2})\.(\d{2})\.(\d{4})\s(\d{2}):(\d{2})/);
+    if (!m) return null;
+    const [_, dd, MM, yyyy, hh, mm] = m;
+    const d = new Date(Number(yyyy), Number(MM) - 1, Number(dd), Number(hh), Number(mm));
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  _handleEscClose = (e) => {
+    if (e.key === 'Escape') this.closeAddModal();
   }
 
   // Управление задачами
-  addTask(text) {
+  addTask(text, scheduledAtIso) {
     const task = {
       id: Date.now().toString(),
       text: text.trim(),
       completed: false,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      scheduledAt: scheduledAtIso || null
     };
     
     this.tasks.unshift(task);
@@ -235,11 +622,15 @@ class TodoApp {
   handleAddTask(e) {
     e.preventDefault();
     const input = document.getElementById('taskInput');
+    const dtInput = document.getElementById('taskDatetime');
     const text = input.value.trim();
+    const dtValue = dtInput && dtInput.value ? dtInput.value : '';
+    const scheduledAtIso = dtValue ? new Date(dtValue).toISOString() : null;
     
     if (text) {
-      this.addTask(text);
+      this.addTask(text, scheduledAtIso);
       input.value = '';
+      if (dtInput) dtInput.value = '';
       
       // Скрыть основную кнопку Telegram после добавления
       if (window.Telegram?.WebApp) {
@@ -247,6 +638,55 @@ class TodoApp {
       }
       
       // Показать тактильный отклик об успешном действии
+      this.showHapticFeedback('success');
+    }
+  }
+
+  openAddModal() {
+    const modal = document.getElementById('addTaskModal');
+    if (!modal) return;
+    modal.classList.add('modal--open');
+    document.getElementById('modalTaskInput')?.focus();
+    document.body.style.overflow = 'hidden';
+    // reset active preset
+    const presetContainer = document.querySelector('.modal__presets');
+    if (presetContainer) [...presetContainer.querySelectorAll('.preset')].forEach(b => b.classList.remove('preset--active'));
+  }
+
+  closeAddModal() {
+    const modal = document.getElementById('addTaskModal');
+    if (!modal) return;
+    modal.classList.remove('modal--open');
+    document.body.style.overflow = '';
+    // cleanup esc
+    document.removeEventListener('keydown', this._handleEscClose);
+  }
+
+  handleModalAddTask(e) {
+    e.preventDefault();
+    const input = document.getElementById('modalTaskInput');
+    const dtInput = document.getElementById('modalTaskDatetime');
+    const text = input?.value?.trim() || '';
+    const dtValue = dtInput && dtInput.value ? dtInput.value : '';
+    let scheduledAtIso = null;
+    if (dtValue) {
+      const candidate = this.parseFieldDatetime(dtValue);
+      if (!candidate || isNaN(candidate.getTime())) {
+        this.showNotification('Некорректная дата');
+        return;
+      }
+      const now = new Date();
+      if (candidate.getTime() < now.getTime() - 60 * 1000) { // позволяем минутную погрешность
+        this.showNotification('Дата уже в прошлом');
+        return;
+      }
+      scheduledAtIso = candidate.toISOString();
+    }
+    if (text) {
+      this.addTask(text, scheduledAtIso);
+      if (input) input.value = '';
+      if (dtInput) dtInput.value = '';
+      this.closeAddModal();
       this.showHapticFeedback('success');
     }
   }
@@ -440,6 +880,25 @@ class TodoApp {
     
     const textElement = article.querySelector('.task__text');
     textElement.textContent = task.text;
+
+    // scheduledAt rendering
+    const scheduledEl = article.querySelector('.task__scheduled');
+    if (scheduledEl) {
+      if (task.scheduledAt) {
+        const date = new Date(task.scheduledAt);
+        const formatted = date.toLocaleString(undefined, {
+          year: 'numeric', month: 'short', day: '2-digit',
+          hour: '2-digit', minute: '2-digit'
+        });
+        scheduledEl.textContent = formatted;
+        scheduledEl.dataset.datetime = task.scheduledAt;
+        scheduledEl.style.display = 'inline';
+      } else {
+        scheduledEl.textContent = '';
+        scheduledEl.dataset.datetime = '';
+        scheduledEl.style.display = 'none';
+      }
+    }
 
     return taskElement;
   }
