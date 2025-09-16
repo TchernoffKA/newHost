@@ -554,14 +554,3 @@ document.addEventListener('DOMContentLoaded', () => {
   new TodoApp();
 });
 
-// Регистрация Service Worker (если понадобится в будущем)
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', async () => {
-    try {
-      // Будет реализовано в одном из следующих релизов
-      console.log('Service Worker support detected');
-    } catch (error) {
-      console.log('Service Worker registration failed:', error);
-    }
-  });
-}
