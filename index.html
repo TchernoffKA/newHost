@@ -5,10 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <meta name="description" content="Простой и быстрый ToDo для Telegram Mini App">
     <title>ToDo - Telegram Mini App</title>
+    
+    <!-- PWA манифест -->
+    <link rel="manifest" href="/manifest.json">
+    
+    <!-- Метатеги для PWA -->
+    <meta name="theme-color" content="#3b82f6">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="ToDo">
+    <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgdmlld0JveD0iMCAwIDE5MiAxOTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxOTIiIGhlaWdodD0iMTkyIiByeD0iMjQiIGZpbGw9IiMzYjgyZjYiLz4KPHN2ZyB4PSI0OCIgeT0iNDgiIHdpZHRoPSI5NiIgaGVpZ2h0PSI5NiIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+CjxwYXRoIGQ9Im05IDExIDMgM0wyMCA0Ii8+CjxwYXRoIGQ9Im0yMCA0LTUgNS01LTUiLz4KPHBhdGggZD0iTTQgMTFoMTYiLz4KPHN2Zz4KPC9zdmc+">
+    
+    <!-- Шрифты -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Стили приложения -->
     <link rel="stylesheet" href="todo-styles.css">
+    
     <!-- Библиотека Telegram WebApp для работы внутри Telegram -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
@@ -119,5 +134,55 @@
     <script src="storage.js"></script>
     <!-- Основная логика приложения ToDo -->
     <script src="todo-script.js"></script>
+    
+    <!-- Регистрация Service Worker для PWA -->
+    <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', async () => {
+        try {
+          const registration = await navigator.serviceWorker.register('/sw.js', {
+            scope: '/'
+          });
+          
+          console.log('Service Worker registered successfully:', registration.scope);
+          
+          // Обработка обновлений Service Worker
+          registration.addEventListener('updatefound', () => {
+            const newWorker = registration.installing;
+            if (newWorker) {
+              newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  // Новая версия доступна, можно показать уведомление пользователю
+                  console.log('Новая версия приложения доступна');
+                  
+                  // Автоматически обновляем через 3 секунды
+                  setTimeout(() => {
+                    newWorker.postMessage({ type: 'SKIP_WAITING' });
+                    window.location.reload();
+                  }, 3000);
+                }
+              });
+            }
+          });
+          
+          // Слушаем сообщения от Service Worker
+          navigator.serviceWorker.addEventListener('message', (event) => {
+            const { type, payload } = event.data;
+            if (type === 'SW_UPDATED') {
+              console.log('Service Worker обновлен');
+            }
+          });
+          
+        } catch (error) {
+          console.error('Service Worker registration failed:', error);
+        }
+      });
+      
+      // Обработка контроллера Service Worker
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        console.log('Service Worker controller changed');
+      });
+    }
+    </script>
 </body>
 </html>
