@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="description" content="Простой и быстрый ToDo для Telegram Mini App">
+    <title>ToDo - Telegram Mini App</title>
+    
+    <!-- PWA манифест -->
+    <link rel="manifest" href="/manifest.json">
+    
+    <!-- Метатеги для PWA -->
+    <meta name="theme-color" content="#3b82f6">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="ToDo">
+    <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgdmlld0JveD0iMCAwIDE5MiAxOTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxOTIiIGhlaWdodD0iMTkyIiByeD0iMjQiIGZpbGw9IiMzYjgyZjYiLz4KPHN2ZyB4PSI0OCIgeT0iNDgiIHdpZHRoPSI5NiIgaGVpZ2h0PSI5NiIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+CjxwYXRoIGQ9Im05IDExIDMgM0wyMCA0Ii8+CjxwYXRoIGQ9Im0yMCA0LTUgNS01LTUiLz4KPHBhdGggZD0iTTQgMTFoMTYiLz4KPHN2Zz4KPC9zdmc+">
+    
+    <!-- Шрифты -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Стили приложения -->
+    <link rel="stylesheet" href="todo-styles.css">
+    
+    <!-- Библиотека Telegram WebApp для работы внутри Telegram -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+    <div class="app">
+        <!-- Шапка приложения: аватар/имя пользователя и счетчик задач -->
+        <header class="header">
+            <div class="header__user">
+                <div class="user-avatar" id="userAvatar">👤</div>
+                <div class="user-info">
+                    <h1 class="header__title">Мои задачи</h1>
+                    <div class="user-name" id="userName">Загружается...</div>
+                </div>
+            </div>
+            <div class="header__counter">
+                <span id="taskCounter">0 задач</span>
+            </div>
+        </header>
+
+        <!-- Форма добавления новой задачи (скрыта, заменена FAB + модаль) -->
+        <section class="add-task" style="display: none;">
+            <form class="add-task__form" id="addTaskForm">
+                <input 
+                    type="text" 
+                    class="add-task__input" 
+                    id="taskInput"
+                    placeholder="Добавить новую задачу..."
+                    maxlength="200"
+                    required
+                >
+                <input
+                    type="datetime-local"
+                    class="add-task__datetime"
+                    id="taskDatetime"
+                    aria-label="Дата и время выполнения"
+                >
+                <button type="submit" class="add-task__btn" aria-label="Добавить задачу">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                </button>
+            </form>
+        </section>
+
+        <!-- Фильтры списка задач: Все / Активные / Выполненные -->
+        <nav class="filters">
+            <button class="filter-btn filter-btn--active" data-filter="all">
+                Все <span class="filter-count" id="allCount">0</span>
+            </button>
+            <button class="filter-btn" data-filter="active">
+                Активные <span class="filter-count" id="activeCount">0</span>
+            </button>
+            <button class="filter-btn" data-filter="completed">
+                Выполненные <span class="filter-count" id="completedCount">0</span>
+            </button>
+        </nav>
+
+        <!-- Список задач -->
+        <main class="task-list" id="taskList">
+            <!-- Состояние пустого списка (показывается, когда задач нет под выбранный фильтр) -->
+            <div class="empty-state" id="emptyState">
+                <div class="empty-state__icon">📝</div>
+                <h2 class="empty-state__title">Пока нет задач</h2>
+                <p class="empty-state__text">Добавьте первую задачу, чтобы начать планировать свой день</p>
+            </div>
+
+            <!-- Задачи будут динамически добавляться сюда из шаблона ниже -->
+        </main>
+
+        <!-- Массовые действия: появляются, когда есть выполненные задачи -->
+        <footer class="bulk-actions" id="bulkActions" style="display: none;">
+            <button class="bulk-btn" id="clearCompleted">
+                Очистить выполненные
+            </button>
+            <button class="bulk-btn bulk-btn--share" id="shareProgress">
+                Поделиться прогрессом
+            </button>
+        </footer>
+    </div>
+
+    <!-- Floating Action Button (Add Task) -->
+    <button class="fab" id="openAddTaskModal" aria-label="Добавить задачу">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="m18 2 4 4-14 14H4v-4z"></path>
+            <path d="m14.5 5.5 4 4"></path>
+        </svg>
+    </button>
+
+    <!-- Modal: Add Task -->
+    <div class="modal" id="addTaskModal" aria-hidden="true">
+        <div class="modal__backdrop" data-close="modal"></div>
+        <div class="modal__dialog" role="dialog" aria-modal="true" aria-labelledby="addTaskTitle">
+            <header class="modal__header">
+                <h3 class="modal__title" id="addTaskTitle">Новая задача</h3>
+                <button class="modal__close" id="closeAddTaskModal" aria-label="Закрыть">✕</button>
+            </header>
+            <form class="modal__form" id="modalAddTaskForm">
+                <label class="modal__label" for="modalTaskInput">Текст задачи</label>
+                <div class="modal__input-row">
+                    <input 
+                        type="text" 
+                        class="modal__input" 
+                        id="modalTaskInput"
+                        placeholder="Например: Позвонить клиенту"
+                        maxlength="200"
+                        required
+                    >
+                    <span class="modal__char-counter" id="modalCharCounter">0/200</span>
+                </div>
+
+                <label class="modal__label" for="modalTaskDatetime">Дата и время</label>
+                <div class="modal__datetime-row">
+                    <input
+                        type="text"
+                        class="modal__datetime"
+                        id="modalTaskDatetime"
+                        placeholder="дд.мм.гггг чч:мм"
+                        readonly
+                        aria-label="Дата и время выполнения"
+                    >
+                    <button type="button" class="modal__btn" id="openDatePicker">Дата</button>
+                    <button type="button" class="modal__btn" id="openTimePicker">Время</button>
+                    <button type="button" class="modal__btn modal__btn--ghost" id="clearModalDatetime">Очистить</button>
+                </div>
+
+                <div class="modal__presets" aria-label="Быстрый выбор">
+                    <button type="button" class="preset" data-preset="plus1h">⏱️ +1 час</button>
+                    <button type="button" class="preset" data-preset="todayEvening">🌙 Сегодня вечером</button>
+                    <button type="button" class="preset" data-preset="tomorrowMorning">☀️ Завтра утром</button>
+                    <button type="button" class="preset" data-preset="weekend">🗓️ На выходных</button>
+                </div>
+
+                <div class="modal__actions">
+                    <button type="button" class="modal__btn" id="cancelAddTask">Отмена</button>
+                    <button type="submit" class="modal__btn modal__btn--primary" id="modalAddSubmit" disabled>Добавить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Date Picker -->
+    <div class="modal" id="datePickerModal" aria-hidden="true">
+        <div class="modal__backdrop" data-close="modal"></div>
+        <div class="modal__dialog" role="dialog" aria-modal="true" aria-labelledby="datePickerTitle">
+            <header class="modal__header">
+                <h3 class="modal__title" id="datePickerTitle">Выберите дату</h3>
+                <button class="modal__close" id="closeDatePicker" aria-label="Закрыть">✕</button>
+            </header>
+            <div class="calendar" id="calendar"></div>
+            <div class="modal__actions">
+                <button type="button" class="modal__btn" id="cancelDatePicker">Отмена</button>
+                <button type="button" class="modal__btn modal__btn--primary" id="applyDatePicker">Готово</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Time Picker -->
+    <div class="modal" id="timePickerModal" aria-hidden="true">
+        <div class="modal__backdrop" data-close="modal"></div>
+        <div class="modal__dialog" role="dialog" aria-modal="true" aria-labelledby="timePickerTitle">
+            <header class="modal__header">
+                <h3 class="modal__title" id="timePickerTitle">Выберите время</h3>
+                <button class="modal__close" id="closeTimePicker" aria-label="Закрыть">✕</button>
+            </header>
+            <div class="timepicker" id="timePicker">
+                <div class="timepicker__wheel" id="hourWheel"></div>
+                <span class="timepicker__sep">:</span>
+                <div class="timepicker__wheel" id="minuteWheel"></div>
+            </div>
+            <div class="modal__actions">
+                <button type="button" class="modal__btn" id="cancelTimePicker">Отмена</button>
+                <button type="button" class="modal__btn modal__btn--primary" id="applyTimePicker">Готово</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Шаблон одной задачи. JS-код клонирует содержимое template и наполняет данными -->
+    <template id="taskTemplate">
+        <article class="task" data-id="">
+            <div class="task__content">
+                <button class="task__toggle" aria-label="Отметить как выполненную">
+                    <svg class="task__check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="20,6 9,17 4,12"></polyline>
+                    </svg>
+                </button>
+                <div class="task__text-wrapper">
+                    <span class="task__text"></span>
+                    <input type="text" class="task__input" style="display: none;">
+                    <div class="task__meta">
+                        <span class="task__scheduled" data-datetime=""></span>
+                    </div>
+                </div>
+            </div>
+            <div class="task__actions">
+                <button class="task__edit-btn" aria-label="Редактировать задачу">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="m18 2 4 4-14 14H4v-4z"></path>
+                        <path d="m14.5 5.5 4 4"></path>
+                    </svg>
+                </button>
+                <button class="task__delete-btn" aria-label="Удалить задачу">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="3,6 5,6 21,6"></polyline>
+                        <path d="m19,6v14a2,2 0 0 1-2,2H7a2,2 0 0 1-2-2V6m3,0V4a2,2 0 0 1 2-2h4a2,2 0 0 1 2,2v2"></path>
+                    </svg>
+                </button>
+            </div>
+        </article>
+    </template>
+
+    <!-- Локальный модуль хранилища задач (LocalStorage + опционально Telegram CloudStorage) -->
+    <script src="storage.js"></script>
+    <!-- Основная логика приложения ToDo -->
+    <script src="todo-script.js"></script>
+    
+    <!-- Регистрация Service Worker для PWA -->
+    <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', async () => {
+        try {
+          const registration = await navigator.serviceWorker.register('/sw.js', {
+            scope: '/'
+          });
+          
+          console.log('Service Worker registered successfully:', registration.scope);
+          
+          // Обработка обновлений Service Worker
+          registration.addEventListener('updatefound', () => {
+            const newWorker = registration.installing;
+            if (newWorker) {
+              newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  // Новая версия доступна, можно показать уведомление пользователю
+                  console.log('Новая версия приложения доступна');
+                  
+                  // Автоматически обновляем через 3 секунды
+                  setTimeout(() => {
+                    newWorker.postMessage({ type: 'SKIP_WAITING' });
+                    window.location.reload();
+                  }, 3000);
+                }
+              });
+            }
+          });
+          
+          // Слушаем сообщения от Service Worker
+          navigator.serviceWorker.addEventListener('message', (event) => {
+            const { type, payload } = event.data;
+            if (type === 'SW_UPDATED') {
+              console.log('Service Worker обновлен');
+            }
+          });
+          
+        } catch (error) {
+          console.error('Service Worker registration failed:', error);
+        }
+      });
+      
+      // Обработка контроллера Service Worker
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        console.log('Service Worker controller changed');
+      });
+    }
+    </script>
+</body>
+</html>

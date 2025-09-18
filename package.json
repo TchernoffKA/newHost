@@ -1,0 +1,27 @@
+{
+  "name": "todo-telegram-mini-app",
+  "version": "0.1.0",
+  "description": "Простой и быстрый ToDo для мобильных устройств с поддержкой Telegram",
+  "main": "index.html",
+  "scripts": {
+    "start": "python -m http.server 8000",
+    "deploy": "powershell -ExecutionPolicy Bypass -File ./deploy/deploy.ps1"
+  },
+  "keywords": [
+    "todo",
+    "telegram",
+    "mini-app",
+    "pwa",
+    "productivity"
+  ],
+  "author": "TchernoffKA",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/TchernoffKA/todo-telegram-mini-app.git"
+  },
+  "bugs": {
+    "url": "https://github.com/TchernoffKA/todo-telegram-mini-app/issues"
+  },
+  "homepage": "https://github.com/TchernoffKA/todo-telegram-mini-app#readme"
+}
