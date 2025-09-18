@@ -85,7 +85,7 @@ function Send-FtpFile {
 
 function Get-FilesToUpload {
   param([string]$Root = '.')
-  $patterns = @('*.html','*.css','*.js','*.webp','*.png','*.jpg','*.jpeg','*.svg','*.ico')
+  $patterns = @('*.html','*.css','*.js','*.json','*.webp','*.png','*.jpg','*.jpeg','*.svg','*.ico')
   $files = @()
   foreach ($pat in $patterns) { $files += Get-ChildItem -Path $Root -File -Recurse -Filter $pat }
   $files | Where-Object { $_.FullName -notmatch "\\(node_modules|.git)\\" }
