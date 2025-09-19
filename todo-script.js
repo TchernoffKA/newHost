@@ -324,6 +324,10 @@ class TodoApp {
     container.innerHTML = '';
     const year = baseDate.getFullYear();
     const month = baseDate.getMonth();
+    const now = new Date();
+    const todayY = now.getFullYear();
+    const todayM = now.getMonth();
+    const todayD = now.getDate();
     // header
     const header = document.createElement('div');
     header.className = 'calendar__header';
@@ -364,12 +368,20 @@ class TodoApp {
       const cell = document.createElement('button');
       cell.className = 'calendar__cell calendar__cell--day';
       cell.textContent = String(d);
-      cell.addEventListener('click', () => {
-        this._selectedDate = new Date(year, month, d);
-        // highlight
-        grid.querySelectorAll('.calendar__cell--selected').forEach(el => el.classList.remove('calendar__cell--selected'));
-        cell.classList.add('calendar__cell--selected');
-      });
+      const isToday = (year === todayY && month === todayM && d === todayD);
+      if (isToday) cell.classList.add('calendar__cell--today');
+      const isPast = new Date(year, month, d, 23, 59, 59, 999).getTime() < now.getTime();
+      if (isPast) {
+        cell.classList.add('calendar__cell--past');
+        cell.disabled = true;
+      } else {
+        cell.addEventListener('click', () => {
+          this._selectedDate = new Date(year, month, d);
+          // highlight
+          grid.querySelectorAll('.calendar__cell--selected').forEach(el => el.classList.remove('calendar__cell--selected'));
+          cell.classList.add('calendar__cell--selected');
+        });
+      }
       grid.appendChild(cell);
     }
     // next lead to complete 6 rows (42 cells + weekdays)
@@ -386,11 +398,19 @@ class TodoApp {
   applyDateToField() {
     const field = document.getElementById('modalTaskDatetime');
     if (!field || !this._selectedDate) return;
-    const existing = this.parseFieldDatetime(field.value);
-    const hours = existing ? existing.getHours() : 9;
-    const minutes = existing ? existing.getMinutes() : 0;
-    this._selectedDate.setHours(hours, minutes, 0, 0);
-    field.value = this.formatFieldDatetime(this._selectedDate);
+    const now = new Date();
+    // Всегда подставляем текущее время при выборе даты
+    const hours = now.getHours();
+    const minutes = now.getMinutes();
+    const candidate = new Date(this._selectedDate.getTime());
+    candidate.setHours(hours, minutes, 0, 0);
+    if (candidate.getTime() < now.getTime() - 60 * 1000) {
+      this.showNotification('Дата уже в прошлом');
+      this.showHapticFeedback('warning');
+      return;
+    }
+    this._selectedDate = candidate;
+    field.value = this.formatFieldDatetime(candidate);
   }
 
   // ---------- Time Picker ----------
@@ -460,9 +480,10 @@ class TodoApp {
       const globalIndex = wheel._segmentLength + indexInSegment; // середина
       const targetTop = pad + globalIndex * wheel._itemHeight - (wheel.clientHeight / 2 - wheel._itemHeight / 2);
       if (kind) snapping[kind] = true;
-      wheel.scrollTo({ top: targetTop, behavior: 'smooth' });
-      // сбросить флаг после завершения анимации
-      setTimeout(() => { if (kind) snapping[kind] = false; }, 160);
+      // моментальное позиционирование без плавности, чтобы исключить резонанс с нативным инерционным скроллом
+      wheel.scrollTop = targetTop;
+      // небольшой таймаут для сброса флага, чтобы игнорировать лишние события scroll
+      setTimeout(() => { if (kind) snapping[kind] = false; }, 120);
     };
 
     const updateActive = (wheel) => {
@@ -495,7 +516,7 @@ class TodoApp {
       const idx = updateActive(hourWheel);
       this._selectedTime.h = hourWheel._values[idx];
       clearTimeout(hourDebounce);
-      hourDebounce = setTimeout(() => centerToIndex(hourWheel, idx, 'h'), 80);
+      hourDebounce = setTimeout(() => centerToIndex(hourWheel, idx, 'h'), 140);
     }, { passive: true });
     minuteWheel.addEventListener('scroll', () => {
       if (snapping.m) return;
@@ -503,7 +524,7 @@ class TodoApp {
       const idx = updateActive(minuteWheel);
       this._selectedTime.m = minuteWheel._values[idx];
       clearTimeout(minuteDebounce);
-      minuteDebounce = setTimeout(() => centerToIndex(minuteWheel, idx, 'm'), 80);
+      minuteDebounce = setTimeout(() => centerToIndex(minuteWheel, idx, 'm'), 140);
     }, { passive: true });
 
     // init select from field or defaults
@@ -530,8 +551,15 @@ class TodoApp {
     const base = this.parseFieldDatetime(field.value) || new Date();
     const h = this._selectedTime.h ?? base.getHours();
     const m = this._selectedTime.m ?? base.getMinutes();
-    base.setHours(h, m, 0, 0);
-    field.value = this.formatFieldDatetime(base);
+    const candidate = new Date(base.getTime());
+    candidate.setHours(h, m, 0, 0);
+    const now = new Date();
+    if (candidate.getTime() < now.getTime() - 60 * 1000) {
+      this.showNotification('Дата уже в прошлом');
+      this.showHapticFeedback('warning');
+      return;
+    }
+    field.value = this.formatFieldDatetime(candidate);
   }
 
   // Helpers for field formatting
@@ -970,11 +998,31 @@ class TodoApp {
 
   // Показ уведомлений пользователю (через Telegram Alert или стандартный alert)
   showNotification(message) {
-    if (window.Telegram?.WebApp) {
-      window.Telegram.WebApp.showAlert(message);
-    } else {
-      alert(message);
+    // Пытаемся показать системное уведомление Telegram, если поддерживается
+    try {
+      if (window.Telegram?.WebApp?.showAlert) {
+        window.Telegram.WebApp.showAlert(message);
+        return;
+      }
+    } catch (_) {}
+
+    // Фолбэк: собственный тост
+    const container = document.getElementById('toastContainer');
+    if (container) {
+      const el = document.createElement('div');
+      el.className = 'toast toast--warning toast--show';
+      el.role = 'status';
+      el.textContent = message;
+      container.appendChild(el);
+      setTimeout(() => {
+        el.classList.remove('toast--show');
+        setTimeout(() => el.remove(), 200);
+      }, 2500);
+      return;
     }
+
+    // Последний резерв
+    try { alert(message); } catch (_) {}
   }
 
   // Хранение задач: делегируем в TaskStorage (учитывает пользователя)
