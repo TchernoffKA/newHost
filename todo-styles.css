@@ -354,6 +354,44 @@ input {
   font-weight: 500;
 }
 
+/* Network/Sync status */
+.header__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 12px;
+  padding: 4px 8px;
+  background: var(--bg-accent);
+  border: 1px solid var(--border-light);
+  border-radius: 999px;
+}
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--success);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--success) 20%, transparent);
+}
+.status-text { color: var(--text-secondary); }
+.header__status--offline .status-dot { background: var(--danger); box-shadow: 0 0 0 2px color-mix(in srgb, var(--danger) 20%, transparent); }
+.header__status--offline .status-text { color: var(--danger); }
+.header__status--syncing .status-text { color: var(--text-secondary); }
+.status-sync { display: inline-flex; align-items: center; gap: 6px; color: var(--text-secondary); }
+
+/* Spinner */
+.spinner { animation: rotate 1s linear infinite; }
+.spinner .path {
+  stroke: var(--primary);
+  stroke-linecap: round;
+  animation: dash 1.5s ease-in-out infinite;
+}
+@keyframes rotate { 100% { transform: rotate(360deg); } }
+@keyframes dash {
+  0% { stroke-dasharray: 1, 150; stroke-dashoffset: 0; }
+  50% { stroke-dasharray: 90, 150; stroke-dashoffset: -35; }
+  100% { stroke-dasharray: 90, 150; stroke-dashoffset: -124; }
+}
+
 /* Add task form */
 .add-task {
   padding: var(--spacing-md) 0;

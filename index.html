@@ -40,6 +40,16 @@
             </div>
             <div class="header__counter">
                 <span id="taskCounter">0 задач</span>
+                <div class="header__status" id="appStatus" role="status" aria-live="polite" aria-atomic="true">
+                    <span class="status-dot" id="statusDot"></span>
+                    <span class="status-text" id="statusText">Онлайн</span>
+                    <span class="status-sync" id="statusSync" hidden>
+                        <svg class="spinner" width="14" height="14" viewBox="0 0 50 50" aria-hidden="true">
+                            <circle class="path" cx="25" cy="25" r="20" fill="none" stroke-width="6"></circle>
+                        </svg>
+                        Синхронизация…
+                    </span>
+                </div>
             </div>
         </header>
 

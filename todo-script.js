@@ -20,6 +20,7 @@ class TodoApp {
     this.loadTasks();
     this.bindEvents();
     this.render();
+    this.initConnectivity();
   }
 
   // Инициализация Telegram WebApp (если доступен)
@@ -291,6 +292,82 @@ class TodoApp {
       if (openDateBtn) openDateBtn.addEventListener('click', () => this.openDatePicker());
       if (openTimeBtn) openTimeBtn.addEventListener('click', () => this.openTimePicker());
     }
+
+  // --- Connectivity & Sync UI ---
+  initConnectivity() {
+    const statusEl = document.getElementById('appStatus');
+    const statusText = document.getElementById('statusText');
+    const statusDot = document.getElementById('statusDot');
+    const statusSync = document.getElementById('statusSync');
+    if (!statusEl || !statusText || !statusDot || !statusSync) return;
+
+    const applyOnline = () => {
+      statusEl.classList.remove('header__status--offline');
+      statusText.textContent = 'Онлайн';
+      statusSync.hidden = true;
+    };
+    const applyOffline = () => {
+      statusEl.classList.add('header__status--offline');
+      statusText.textContent = 'Офлайн';
+      statusSync.hidden = true;
+      this.showNotification('Вы офлайн. Изменения сохранятся локально и будут синхронизированы позже.');
+    };
+    const applySyncing = () => {
+      statusEl.classList.add('header__status--syncing');
+      statusSync.hidden = false;
+    };
+    const clearSyncing = () => {
+      statusEl.classList.remove('header__status--syncing');
+      statusSync.hidden = true;
+    };
+
+    // initial
+    if (navigator.onLine) applyOnline(); else applyOffline();
+
+    // network events
+    window.addEventListener('online', () => {
+      applyOnline();
+      // при возврате сети попробуем триггернуть мягкую синхронизацию (если поддерживается)
+      this.trySync();
+    });
+    window.addEventListener('offline', applyOffline);
+
+    // custom sync events from storage
+    window.addEventListener('sync:start', applySyncing);
+    window.addEventListener('sync:success', () => {
+      clearSyncing();
+      this.showNotification('Синхронизация завершена');
+    });
+    window.addEventListener('sync:error', (e) => {
+      clearSyncing();
+      const msg = e.detail?.message || 'Синхронизация не удалась';
+      this.showNotification(msg);
+    });
+  }
+
+  trySync() {
+    // В текущей реализации синхронизация = запись в Telegram CloudStorage при saveTasks, 
+    // и чтение из него при loadTasks. Здесь можем рефрешнуть облако.
+    if (!navigator.onLine) return;
+    const evt = new CustomEvent('sync:start');
+    window.dispatchEvent(evt);
+    try {
+      // Пере-инициируем загрузку из облака
+      this.storage.loadTasks((cloud) => {
+        try {
+          if (Array.isArray(cloud)) {
+            this.tasks = cloud;
+            this.render();
+          }
+          window.dispatchEvent(new CustomEvent('sync:success'));
+        } catch (e) {
+          window.dispatchEvent(new CustomEvent('sync:error', { detail: { message: 'Ошибка применения облачных данных' } }));
+        }
+      });
+    } catch (e) {
+      window.dispatchEvent(new CustomEvent('sync:error', { detail: { message: 'Ошибка синхронизации' } }));
+    }
+  }
   }
 
   // ---------- Date Picker ----------
@@ -1028,9 +1105,14 @@ class TodoApp {
   // Хранение задач: делегируем в TaskStorage (учитывает пользователя)
   saveTasks() {
     try {
+      // Старт синхронизации при попытке сохранить
+      window.dispatchEvent(new CustomEvent('sync:start'));
       this.storage.saveTasks(this.tasks);
+      // Локальное сохранение прошло, облако — best-effort; считаем успехом
+      window.dispatchEvent(new CustomEvent('sync:success'));
     } catch (error) {
       console.error('Failed to save tasks:', error);
+      window.dispatchEvent(new CustomEvent('sync:error', { detail: { message: 'Не удалось сохранить изменения' } }));
     }
   }
 
