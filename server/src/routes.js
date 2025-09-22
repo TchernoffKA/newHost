@@ -1,6 +1,5 @@
 import express from 'express';
-import { verifyInitData } from './telegram.js';
-import { upsertTelegramUser } from './users.js';
+import { authMiddleware } from './auth.js';
 import { listTasks, createTask, updateTask, deleteTask } from './tasks.js';
 
 export const router = express.Router();
@@ -15,28 +14,8 @@ function mapRowToFront(row) {
   };
 }
 
-// Auth middleware using Telegram initData in header 'x-telegram-init-data'
-router.use(async (req, res, next) => {
-  const initData = req.header('x-telegram-init-data') || req.query.init_data;
-  // Dev fallback: emulate telegram user via env DEV_TELEGRAM_ID
-  if (!initData && process.env.DEV_TELEGRAM_ID) {
-    const fake = { id: Number(process.env.DEV_TELEGRAM_ID), username: 'dev' };
-    const user = await upsertTelegramUser(fake);
-    req.user = user;
-    return next();
-  }
-  const verified = verifyInitData(initData);
-  if (!verified || !verified.user) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-  try {
-    const user = await upsertTelegramUser(verified.user);
-    req.user = user;
-    next();
-  } catch (e) {
-    res.status(500).json({ error: 'Auth failed', details: String(e?.message || e) });
-  }
-});
+// Unified auth: JWT Bearer or Telegram initData
+router.use(authMiddleware);
 
 router.get('/tasks', async (req, res) => {
   const tasks = await listTasks(req.user.id);
