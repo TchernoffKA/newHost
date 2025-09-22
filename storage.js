@@ -52,7 +52,28 @@
      * @param {(tasks: any[]) => void} [onCloudUpdate] колбэк при получении данных из облака
      * @returns {any[]} локальные задачи (распарсенные) или []
      */
-    loadTasks(onCloudUpdate) {
+    async loadTasks(onCloudUpdate) {
+      // Если инициализирован Telegram WebApp и есть initData — пробуем получить задачи с сервера
+      try {
+        const tg = window.Telegram?.WebApp;
+        if (tg?.initData) {
+          const res = await fetch('/api/tasks', {
+            headers: { 'x-telegram-init-data': tg.initData }
+          });
+          if (res.ok) {
+            const serverTasks = await res.json();
+            if (Array.isArray(serverTasks)) {
+              // Отражаем на локальное хранилище для офлайна
+              const key = this.getStorageKey();
+              localStorage.setItem(key, JSON.stringify(serverTasks));
+              if (typeof onCloudUpdate === 'function') onCloudUpdate(serverTasks);
+              return serverTasks;
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('TaskStorage.loadTasks: сервер недоступен, использую локальные данные', e);
+      }
       let localTasks = [];
       try {
         const key = this.getStorageKey();
