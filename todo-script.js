@@ -599,6 +599,30 @@ class TodoApp {
     
     this.tasks.unshift(task);
     this.saveTasks();
+    // Попробовать отправить на сервер, если есть Telegram initData
+    try {
+      const tg = window.Telegram?.WebApp;
+      if (tg?.initData) {
+        fetch('/api/tasks', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-telegram-init-data': tg.initData
+          },
+          body: JSON.stringify({ text: task.text, scheduledAt: scheduledAtIso })
+        }).then(async (r) => {
+          if (!r.ok) return;
+          const created = await r.json();
+          // заменить временную задачу серверной версией
+          const idx = this.tasks.findIndex(t => t.id === task.id);
+          if (idx !== -1) {
+            this.tasks[idx] = created;
+            this.saveTasks();
+            this.render();
+          }
+        }).catch(() => {});
+      }
+    } catch (_) {}
     this.render();
     
     // Добавить класс анимации для плавного появления
@@ -615,6 +639,21 @@ class TodoApp {
     if (taskIndex !== -1) {
       this.tasks[taskIndex] = { ...this.tasks[taskIndex], ...updates };
       this.saveTasks();
+      try {
+        const tg = window.Telegram?.WebApp;
+        if (tg?.initData) {
+          const payload = { ...updates };
+          if (payload.text === undefined && updates.text !== undefined) payload.text = updates.text;
+          fetch(`/api/tasks/${id}`, {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-telegram-init-data': tg.initData
+            },
+            body: JSON.stringify(payload)
+          }).catch(() => {});
+        }
+      } catch (_) {}
       this.render();
     }
   }
@@ -626,6 +665,15 @@ class TodoApp {
       setTimeout(() => {
         this.tasks = this.tasks.filter(task => task.id !== id);
         this.saveTasks();
+        try {
+          const tg = window.Telegram?.WebApp;
+          if (tg?.initData) {
+            fetch(`/api/tasks/${id}`, {
+              method: 'DELETE',
+              headers: { 'x-telegram-init-data': tg.initData }
+            }).catch(() => {});
+          }
+        } catch (_) {}
         this.render();
       }, 300);
     }
@@ -1038,9 +1086,9 @@ class TodoApp {
     this.loadUserTasks();
   }
 
-  loadUserTasks() {
+  async loadUserTasks() {
     try {
-      const localTasks = this.storage.loadTasks((cloudTasks) => {
+      const localTasks = await this.storage.loadTasks((cloudTasks) => {
         try {
           this.tasks = Array.isArray(cloudTasks) ? cloudTasks : [];
           this.render();

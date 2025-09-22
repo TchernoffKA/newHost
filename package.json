@@ -5,7 +5,9 @@
   "main": "index.html",
   "scripts": {
     "start": "python -m http.server 8000",
-    "deploy": "powershell -ExecutionPolicy Bypass -File ./deploy/deploy.ps1"
+    "deploy": "powershell -ExecutionPolicy Bypass -File ./deploy/deploy.ps1",
+    "server:dev": "node ./server/src/index.js",
+    "server:migrate": "node ./server/src/migrate.js"
   },
   "keywords": [
     "todo",
