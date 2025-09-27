@@ -1,12 +1,20 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { pool } from './db.js';
 import { router as apiRouter } from './routes.js';
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+// Serve static frontend from project root
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const staticDir = path.resolve(__dirname, '..', '..');
+app.use(express.static(staticDir));
 
 // DB pool is initialized in db.js
 
@@ -26,6 +34,5 @@ app.listen(port, () => {
   console.log(`[server] listening on http://localhost:${port}`);
 });
 
-export { pool };
 
 

@@ -140,12 +140,7 @@ class TodoApp {
   /**
    * Возвращает ключ хранилища для текущего пользователя
    */
-  getUserStorageKey() {
-    if (this.tgUser) {
-      return `todo-tasks-${this.tgUser.id}`;
-    }
-    return 'todo-tasks';
-  }
+  getUserStorageKey() { /* удалено как неиспользуемое */ }
 
   // Привязка обработчиков событий интерфейса
   bindEvents() {
@@ -188,14 +183,20 @@ class TodoApp {
     const submitBtn = document.getElementById('modalAddSubmit');
     const openDateBtn = document.getElementById('openDatePicker');
     const openTimeBtn = document.getElementById('openTimePicker');
-    if (openFab && modal && closeBtn && cancelBtn && modalForm) {
+    // FAB открывает модалку даже если часть элементов временно не доступна
+    if (openFab) {
       openFab.addEventListener('click', () => this.openAddModal());
+    }
+    if (modal && closeBtn && cancelBtn) {
       closeBtn.addEventListener('click', () => this.closeAddModal());
       cancelBtn.addEventListener('click', () => this.closeAddModal());
       modal.addEventListener('click', (e) => {
         if (e.target.classList.contains('modal__backdrop')) this.closeAddModal();
       });
+    }
+    if (modalForm) {
       modalForm.addEventListener('submit', (e) => this.handleModalAddTask(e));
+    }
       if (clearDtBtn) clearDtBtn.addEventListener('click', () => {
         const dt = document.getElementById('modalTaskDatetime');
         if (dt) dt.value = '';
@@ -349,8 +350,6 @@ class TodoApp {
     // В текущей реализации синхронизация = запись в Telegram CloudStorage при saveTasks, 
     // и чтение из него при loadTasks. Здесь можем рефрешнуть облако.
     if (!navigator.onLine) return;
-    const evt = new CustomEvent('sync:start');
-    window.dispatchEvent(evt);
     try {
       // Пере-инициируем загрузку из облака
       this.storage.loadTasks((cloud) => {
@@ -359,16 +358,15 @@ class TodoApp {
             this.tasks = cloud;
             this.render();
           }
-          window.dispatchEvent(new CustomEvent('sync:success'));
         } catch (e) {
-          window.dispatchEvent(new CustomEvent('sync:error', { detail: { message: 'Ошибка применения облачных данных' } }));
+          // Ошибка применения облачных данных обрабатывается локально
         }
       });
     } catch (e) {
-      window.dispatchEvent(new CustomEvent('sync:error', { detail: { message: 'Ошибка синхронизации' } }));
+      // Ошибка синхронизации обрабатывается локально
     }
   }
-  }
+
 
   // ---------- Date Picker ----------
   _selectedDate = null; // Date
@@ -686,7 +684,7 @@ class TodoApp {
             'Content-Type': 'application/json',
             'x-telegram-init-data': tg.initData
           },
-          body: JSON.stringify({ text: task.text, scheduledAt: scheduledAtIso })
+          body: JSON.stringify({ title: task.text, due_at: scheduledAtIso })
         }).then(async (r) => {
           if (!r.ok) return;
           const created = await r.json();
@@ -719,8 +717,10 @@ class TodoApp {
       try {
         const tg = window.Telegram?.WebApp;
         if (tg?.initData) {
-          const payload = { ...updates };
-          if (payload.text === undefined && updates.text !== undefined) payload.text = updates.text;
+          const payload = {};
+          if (updates && Object.prototype.hasOwnProperty.call(updates, 'text')) payload.title = updates.text;
+          if (updates && Object.prototype.hasOwnProperty.call(updates, 'scheduledAt')) payload.due_at = updates.scheduledAt;
+          if (updates && Object.prototype.hasOwnProperty.call(updates, 'completed')) payload.completed = updates.completed;
           fetch(`/api/tasks/${id}`, {
             method: 'PATCH',
             headers: {
@@ -1169,14 +1169,9 @@ class TodoApp {
   // Хранение задач: делегируем в TaskStorage (учитывает пользователя)
   saveTasks() {
     try {
-      // Старт синхронизации при попытке сохранить
-      window.dispatchEvent(new CustomEvent('sync:start'));
       this.storage.saveTasks(this.tasks);
-      // Локальное сохранение прошло, облако — best-effort; считаем успехом
-      window.dispatchEvent(new CustomEvent('sync:success'));
     } catch (error) {
       console.error('Failed to save tasks:', error);
-      window.dispatchEvent(new CustomEvent('sync:error', { detail: { message: 'Не удалось сохранить изменения' } }));
     }
   }
 

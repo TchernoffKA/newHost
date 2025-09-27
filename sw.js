@@ -1,9 +1,9 @@
 // Service Worker для ToDo PWA
 // Обеспечивает офлайн-работу и кэширование ресурсов
 
-const CACHE_NAME = 'todo-pwa-v0.1.0';
-const STATIC_CACHE_NAME = 'todo-static-v0.1.0';
-const DYNAMIC_CACHE_NAME = 'todo-dynamic-v0.1.0';
+const CACHE_NAME = 'todo-pwa-v0.1.1';
+const STATIC_CACHE_NAME = 'todo-static-v0.1.1';
+const DYNAMIC_CACHE_NAME = 'todo-dynamic-v0.1.1';
 
 // Список файлов для предварительного кэширования
 const STATIC_FILES = [

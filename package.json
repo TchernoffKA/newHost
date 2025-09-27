@@ -5,7 +5,6 @@
   "main": "index.html",
   "scripts": {
     "start": "python -m http.server 8000",
-    "deploy": "powershell -ExecutionPolicy Bypass -File ./deploy/deploy.ps1",
     "server:dev": "node ./server/src/index.js",
     "server:migrate": "node ./server/src/migrate.js"
   },
@@ -26,11 +25,5 @@
     "url": "https://github.com/TchernoffKA/todo-telegram-mini-app/issues"
   },
   "homepage": "https://github.com/TchernoffKA/todo-telegram-mini-app#readme",
-  "type": "module",
-  "dependencies": {
-    "cors": "^2.8.5",
-    "dotenv": "^17.2.2",
-    "express": "^5.1.0",
-    "mysql2": "^3.15.1"
-  }
+  "type": "module"
 }

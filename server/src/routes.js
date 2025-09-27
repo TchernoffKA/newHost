@@ -24,11 +24,10 @@ router.get('/tasks', async (req, res) => {
 
 router.post('/tasks', async (req, res) => {
   const payload = req.body || {};
-  // accept front shape { text, scheduledAt }
   const created = await createTask(req.user.id, {
-    title: payload.title || payload.text,
+    title: payload.title,
     description: payload.description || null,
-    due_at: payload.due_at || payload.scheduledAt || null,
+    due_at: payload.due_at || null,
     priority: payload.priority || 3,
     project_id: payload.project_id || null
   });
@@ -38,10 +37,8 @@ router.post('/tasks', async (req, res) => {
 router.patch('/tasks/:id', async (req, res) => {
   const b = req.body || {};
   const updates = {};
-  if (typeof b.text === 'string') updates.title = b.text;
   if (typeof b.title === 'string') updates.title = b.title;
   if (typeof b.completed === 'boolean') updates.status = b.completed ? 'completed' : 'active';
-  if (b.scheduledAt !== undefined) updates.due_at = b.scheduledAt;
   if (b.due_at !== undefined) updates.due_at = b.due_at;
   const updated = await updateTask(req.user.id, Number(req.params.id), updates);
   if (!updated) return res.status(404).json({ error: 'Not found' });
