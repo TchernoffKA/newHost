@@ -1,0 +1,1 @@
+﻿auth_date=1758972216&user=%7B%22id%22%3A123456789%2C%22username%22%3A%22testuser%22%2C%22first_name%22%3A%22Test%22%2C%22last_name%22%3A%22User%22%2C%22language_code%22%3A%22en%22%7D&query_id=AAABBBCCC&hash=e014ca6955d20a83ffe6a7beb90ba9ae7fcf696b9747fe59ad7e63a7d1fc8343
