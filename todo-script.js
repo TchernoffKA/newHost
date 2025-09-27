@@ -44,7 +44,7 @@ class TodoApp {
       // Настроить основную кнопку Telegram (MainButton)
       tg.MainButton.setText('Добавить задачу');
       tg.MainButton.onClick(() => {
-        document.getElementById('taskInput').focus();
+        this.openAddModal();
       });
       
       // Показывать основную кнопку только при фокусе в поле ввода
@@ -246,7 +246,7 @@ class TodoApp {
       }
 
       // Close on Esc
-      document.addEventListener('keydown', this._handleEscClose);
+      // перенесено в openAddModal, чтобы не плодить глобальный слушатель
 
       // Swipe-to-close
       const dialog = modal.querySelector('.modal__dialog');
@@ -761,6 +761,20 @@ class TodoApp {
     if (task) {
       task.completed = !task.completed;
       this.saveTasks();
+      // серверная синхронизация статуса
+      try {
+        const tg = window.Telegram?.WebApp;
+        if (tg?.initData) {
+          fetch(`/api/tasks/${id}`, {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-telegram-init-data': tg.initData
+            },
+            body: JSON.stringify({ completed: task.completed })
+          }).catch(() => {});
+        }
+      } catch (_) {}
       this.render();
     }
   }
@@ -801,6 +815,8 @@ class TodoApp {
     modal.classList.add('modal--open');
     document.getElementById('modalTaskInput')?.focus();
     document.body.style.overflow = 'hidden';
+    // Esc для закрытия модалки — регистрируем при открытии
+    document.addEventListener('keydown', this._handleEscClose);
     // reset active preset
     const presetContainer = document.querySelector('.modal__presets');
     if (presetContainer) [...presetContainer.querySelectorAll('.preset')].forEach(b => b.classList.remove('preset--active'));

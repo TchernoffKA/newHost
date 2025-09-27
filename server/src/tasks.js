@@ -2,7 +2,7 @@ import { pool } from './db.js';
 
 export async function listTasks(userId) {
   const [rows] = await pool.query(
-    'SELECT id, title, description, status, priority, due_at, created_at, updated_at FROM tasks WHERE user_id = ? AND is_deleted = 0 ORDER BY created_at DESC',
+    'SELECT id, title, description, status, priority, due_at, created_at, updated_at, completed_at FROM tasks WHERE user_id = ? AND is_deleted = 0 ORDER BY created_at DESC',
     [userId]
   );
   return rows;
@@ -25,6 +25,14 @@ export async function updateTask(userId, taskId, updates) {
   const allowed = { title: 1, description: 1, status: 1, priority: 1, due_at: 1 };
   for (const [k, v] of Object.entries(updates || {})) {
     if (allowed[k]) { fields.push(`${k} = ?`); values.push(v); }
+  }
+  // Управление completed_at на основании статуса
+  if ('status' in (updates || {})) {
+    if (updates.status === 'completed') {
+      fields.push('completed_at = CURRENT_TIMESTAMP');
+    } else {
+      fields.push('completed_at = NULL');
+    }
   }
   if (fields.length === 0) return null;
   values.push(userId, taskId);

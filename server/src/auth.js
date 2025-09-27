@@ -6,6 +6,7 @@ import crypto from 'node:crypto';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret_change_me';
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '1h';
+const INITDATA_MAX_AGE_SEC = Number(process.env.TG_INITDATA_MAX_AGE_SEC || 24 * 60 * 60);
 
 export function signAccessToken(user) {
   const payload = {
@@ -43,6 +44,10 @@ export async function authMiddleware(req, res, next) {
   if (initData) {
     const verified = verifyInitData(initData);
     if (verified && verified.user) {
+      // проверка свежести подписи
+      if (verified.authDate && Math.abs(Date.now() / 1000 - Number(verified.authDate)) > INITDATA_MAX_AGE_SEC) {
+        return res.status(401).json({ error: 'InitData expired' });
+      }
       try {
         const user = await upsertTelegramUser(verified.user);
         req.user = user;
@@ -67,6 +72,9 @@ export async function authMiddleware(req, res, next) {
 export async function issueJwtFromTelegram(initDataRaw) {
   const verified = verifyInitData(initDataRaw);
   if (!verified || !verified.user) {
+    return null;
+  }
+  if (verified.authDate && Math.abs(Date.now() / 1000 - Number(verified.authDate)) > INITDATA_MAX_AGE_SEC) {
     return null;
   }
   const user = await upsertTelegramUser(verified.user);
