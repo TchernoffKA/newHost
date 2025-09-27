@@ -3,7 +3,6 @@ import express from 'express';
 import cors from 'cors';
 import { pool } from './db.js';
 import { router as apiRouter } from './routes.js';
-import { authRouter } from './authRoutes.js';
 
 const app = express();
 app.use(cors());
@@ -20,7 +19,6 @@ app.get('/health', async (_req, res) => {
   }
 });
 
-app.use('/api/auth', authRouter);
 app.use('/api', apiRouter);
 
 const port = Number(process.env.PORT || 3000);
