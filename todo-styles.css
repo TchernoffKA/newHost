@@ -466,6 +466,7 @@ input {
   border-bottom: 1px solid var(--border-light);
   overflow-x: auto;
 }
+.filter-select { padding: 6px 8px; border: 1px solid var(--border-light); border-radius: var(--radius-md); background: var(--bg-accent); color: var(--text-secondary); }
 
 .filter-btn {
   display: flex;

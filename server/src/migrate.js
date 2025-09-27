@@ -1,45 +1,52 @@
-import 'dotenv/config';
-import { readFile } from 'node:fs/promises';
-import { createPool } from 'mysql2/promise';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import fs from 'fs';
+import path from 'path';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const DATA_DIR = path.resolve(process.cwd(), 'server', 'data');
+const JSON_FILE = path.join(DATA_DIR, 'tasks.json');
 
-async function main() {
-  const pool = createPool({
-    host: process.env.DB_HOST || 'localhost',
-    port: Number(process.env.DB_PORT || 3306),
-    user: process.env.DB_USER || 'root',
-    password: process.env.DB_PASSWORD || '',
-    database: process.env.DB_NAME || 'todo_app',
-    multipleStatements: true
-  });
+if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+if (!fs.existsSync(JSON_FILE)) fs.writeFileSync(JSON_FILE, JSON.stringify({}), 'utf-8');
 
-  // Use schema_import.sql (no CREATE DATABASE / USE)
-  const schemaPath = path.resolve(__dirname, '../../db/schema_import.sql');
-  let sql = await readFile(schemaPath, 'utf-8');
-  // Handle MySQL DELIMITER blocks for triggers when using mysql2
-  // Remove DELIMITER directives and convert '$$' terminators to ';'
-  sql = sql
-    .replace(/\r?\n\s*DELIMITER\s*\$\$/gi, '')
-    .replace(/\r?\n\s*DELIMITER\s*;?/gi, '')
-    .replace(/\$\$/g, ';');
+let sqliteStatus = 'skipped';
+let pgStatus = 'skipped';
+let mysqlStatus = 'skipped';
 
-  const conn = await pool.getConnection();
-  try {
-    await conn.query(sql);
-    console.log('[migrate] schema applied');
-  } finally {
-    conn.release();
-    await pool.end();
+// Postgres (опционально)
+try {
+  if (process.env.DATABASE_URL) {
+    const mod = await import('./db-postgres.js');
+    if (mod?.migrate) {
+      await mod.migrate();
+      pgStatus = 'initialized';
+    }
   }
+} catch (_) {
+  pgStatus = 'skipped';
+}
+try {
+  const mod = await import('./db-sqlite.js');
+  if (mod?.migrate) {
+    mod.migrate();
+    sqliteStatus = 'initialized';
+  }
+} catch (_) {
+  sqliteStatus = 'skipped';
 }
 
-main().catch((e) => {
-  console.error('[migrate] failed:', e);
-  process.exit(1);
-});
+// MySQL (опционально)
+try {
+  const { MYSQL_HOST, MYSQL_USER, MYSQL_DATABASE } = process.env;
+  if (MYSQL_HOST && MYSQL_USER && MYSQL_DATABASE) {
+    const mod = await import('./db-mysql.js');
+    if (mod?.migrate) {
+      await mod.migrate();
+      mysqlStatus = 'initialized';
+    }
+  }
+} catch (_) {
+  mysqlStatus = 'skipped';
+}
+
+console.log('Migration complete:', { DATA_DIR, JSON_FILE, SQLITE: sqliteStatus, POSTGRES: pgStatus, MYSQL: mysqlStatus });
 
 

@@ -90,6 +90,12 @@
             <button class="filter-btn" data-filter="completed">
                 Выполненные <span class="filter-count" id="completedCount">0</span>
             </button>
+            <select id="projectFilter" class="filter-select" aria-label="Фильтр по проекту">
+                <option value="">Все проекты</option>
+            </select>
+            <select id="tagFilter" class="filter-select" aria-label="Фильтр по тегу">
+                <option value="">Все теги</option>
+            </select>
         </nav>
 
         <!-- Список задач -->
@@ -160,6 +166,11 @@
                     <button type="button" class="modal__btn modal__btn--ghost" id="clearModalDatetime">Очистить</button>
                 </div>
 
+                <label class="modal__label" for="modalProjectSelect">Проект</label>
+                <select id="modalProjectSelect" class="modal__datetime" aria-label="Проект">
+                    <option value="">Без проекта</option>
+                </select>
+
                 <div class="modal__presets" aria-label="Быстрый выбор">
                     <button type="button" class="preset" data-preset="plus1h">⏱️ +1 час</button>
                     <button type="button" class="preset" data-preset="todayEvening">🌙 Сегодня вечером</button>
@@ -228,7 +239,9 @@
                     <input type="text" class="task__input" style="display: none;">
                     <div class="task__meta">
                         <span class="task__scheduled" data-datetime=""></span>
+                        <span class="task__project" data-project-id="" style="display:none"></span>
                     </div>
+                    <div class="task__labels" aria-label="Теги"></div>
                 </div>
             </div>
             <div class="task__actions">
@@ -244,6 +257,15 @@
                         <path d="m19,6v14a2,2 0 0 1-2,2H7a2,2 0 0 1-2-2V6m3,0V4a2,2 0 0 1 2-2h4a2,2 0 0 1 2,2v2"></path>
                     </svg>
                 </button>
+                <button class="task__tags-btn" aria-label="Теги">🏷️</button>
+                <button class="task__comments-btn" aria-label="Комментарии">💬</button>
+            </div>
+            <div class="task__comments" hidden>
+                <div class="task__comments-list"></div>
+                <form class="task__comments-form">
+                    <input type="text" class="task__comments-input" placeholder="Комментарий...">
+                    <button type="submit" class="task__comments-submit">Отправить</button>
+                </form>
             </div>
         </article>
     </template>

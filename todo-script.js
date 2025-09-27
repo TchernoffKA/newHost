@@ -11,6 +11,10 @@ class TodoApp {
     this.editingTaskId = null;
     this.tgUser = null;
     this.storage = new TaskStorage();
+    this.projects = [];
+    this.tags = [];
+    this.projectMap = new Map(); // id -> project
+    this.tagMap = new Map(); // id -> tag
     
     this.init();
   }
@@ -21,6 +25,7 @@ class TodoApp {
     this.bindEvents();
     this.render();
     this.initConnectivity();
+    this.bootstrapRemote();
   }
 
   // Инициализация Telegram WebApp (если доступен)
@@ -142,6 +147,23 @@ class TodoApp {
    */
   getUserStorageKey() { /* удалено как неиспользуемое */ }
 
+  async bootstrapRemote() {
+    try {
+      const tg = window.Telegram?.WebApp;
+      if (!tg?.initData) return;
+      // load projects and tags in parallel
+      const headers = { 'x-telegram-init-data': tg.initData };
+      const [prj, tgs] = await Promise.all([
+        fetch('/api/projects', { headers }).then(r => r.ok ? r.json() : []),
+        fetch('/api/tags', { headers }).then(r => r.ok ? r.json() : [])
+      ]);
+      this.projects = Array.isArray(prj) ? prj : [];
+      this.tags = Array.isArray(tgs) ? tgs : [];
+      this.projectMap = new Map(this.projects.map(p => [String(p.id), p]));
+      this.tagMap = new Map(this.tags.map(t => [String(t.id), t]));
+    } catch (_) {}
+  }
+
   // Привязка обработчиков событий интерфейса
   bindEvents() {
     // Форма добавления задачи (скрытая)
@@ -155,6 +177,10 @@ class TodoApp {
     filterButtons.forEach(btn => {
       btn.addEventListener('click', (e) => this.handleFilterChange(e));
     });
+    const projectFilter = document.getElementById('projectFilter');
+    if (projectFilter) projectFilter.addEventListener('change', () => this.render());
+    const tagFilter = document.getElementById('tagFilter');
+    if (tagFilter) tagFilter.addEventListener('change', () => this.render());
 
     // Кнопка «Очистить выполненные»
     const clearCompletedBtn = document.getElementById('clearCompleted');
@@ -196,6 +222,8 @@ class TodoApp {
     }
     if (modalForm) {
       modalForm.addEventListener('submit', (e) => this.handleModalAddTask(e));
+      // заполняем список проектов
+      this.populateProjectsSelect();
     }
       if (clearDtBtn) clearDtBtn.addEventListener('click', () => {
         const dt = document.getElementById('modalTaskDatetime');
@@ -663,13 +691,14 @@ class TodoApp {
   }
 
   // Управление задачами
-  addTask(text, scheduledAtIso) {
+  addTask(text, scheduledAtIso, projectId = null) {
     const task = {
       id: Date.now().toString(),
       text: text.trim(),
       completed: false,
       createdAt: new Date().toISOString(),
-      scheduledAt: scheduledAtIso || null
+      scheduledAt: scheduledAtIso || null,
+      projectId: projectId || null
     };
     
     this.tasks.unshift(task);
@@ -684,7 +713,7 @@ class TodoApp {
             'Content-Type': 'application/json',
             'x-telegram-init-data': tg.initData
           },
-          body: JSON.stringify({ title: task.text, due_at: scheduledAtIso })
+          body: JSON.stringify({ title: task.text, due_at: scheduledAtIso, project_id: projectId })
         }).then(async (r) => {
           if (!r.ok) return;
           const created = await r.json();
@@ -721,6 +750,7 @@ class TodoApp {
           if (updates && Object.prototype.hasOwnProperty.call(updates, 'text')) payload.title = updates.text;
           if (updates && Object.prototype.hasOwnProperty.call(updates, 'scheduledAt')) payload.due_at = updates.scheduledAt;
           if (updates && Object.prototype.hasOwnProperty.call(updates, 'completed')) payload.completed = updates.completed;
+          if (updates && Object.prototype.hasOwnProperty.call(updates, 'projectId')) payload.project_id = updates.projectId;
           fetch(`/api/tasks/${id}`, {
             method: 'PATCH',
             headers: {
@@ -835,6 +865,7 @@ class TodoApp {
     e.preventDefault();
     const input = document.getElementById('modalTaskInput');
     const dtInput = document.getElementById('modalTaskDatetime');
+    const projectSelect = document.getElementById('modalProjectSelect');
     const text = input?.value?.trim() || '';
     const dtValue = dtInput && dtInput.value ? dtInput.value : '';
     let scheduledAtIso = null;
@@ -852,9 +883,11 @@ class TodoApp {
       scheduledAtIso = candidate.toISOString();
     }
     if (text) {
-      this.addTask(text, scheduledAtIso);
+      const projectId = projectSelect?.value ? projectSelect.value : null;
+      this.addTask(text, scheduledAtIso, projectId);
       if (input) input.value = '';
       if (dtInput) dtInput.value = '';
+      if (projectSelect) projectSelect.value = '';
       this.closeAddModal();
       this.showHapticFeedback('success');
     }
@@ -881,6 +914,10 @@ class TodoApp {
       this.startEditing(taskId);
     } else if (e.target.closest('.task__delete-btn')) {
       this.deleteTask(taskId);
+    } else if (e.target.closest('.task__tags-btn')) {
+      this.openTagsPopover(taskId, taskElement);
+    } else if (e.target.closest('.task__comments-btn')) {
+      this.toggleComments(taskId, taskElement);
     }
   }
 
@@ -954,20 +991,32 @@ class TodoApp {
 
   // Фильтрация задач
   getFilteredTasks() {
+    const projectFilter = document.getElementById('projectFilter');
+    const tagFilter = document.getElementById('tagFilter');
+    const projectId = projectFilter?.value || '';
+    const tagId = tagFilter?.value || '';
+    let base = [];
     switch (this.currentFilter) {
       case 'active':
-        return this.tasks.filter(task => !task.completed);
+        base = this.tasks.filter(task => !task.completed);
+        break;
       case 'completed':
-        return this.tasks.filter(task => task.completed);
+        base = this.tasks.filter(task => task.completed);
+        break;
       default:
-        return this.tasks;
+        base = this.tasks;
     }
+    if (projectId) base = base.filter(t => String(t.projectId || '') === projectId);
+    if (tagId) base = base.filter(t => Array.isArray(t.tags) && t.tags.some(x => String(x.id) === tagId));
+    return base;
   }
 
   // Отрисовка интерфейса
   render() {
     this.updateCounters();
     this.updateFilterButtons();
+    this.populateProjectsSelect();
+    this.populateFilters();
     this.renderTasks();
     this.updateBulkActions();
   }
@@ -985,6 +1034,51 @@ class TodoApp {
     document.getElementById('allCount').textContent = allCount;
     document.getElementById('activeCount').textContent = activeCount;
     document.getElementById('completedCount').textContent = completedCount;
+  }
+
+  populateProjectsSelect() {
+    const select = document.getElementById('modalProjectSelect');
+    if (!select) return;
+    // очистить, оставить первый option "Без проекта"
+    const first = select.querySelector('option');
+    select.innerHTML = '';
+    if (first) select.appendChild(first);
+    if (!this.projects || this.projects.length === 0) return;
+    const frag = document.createDocumentFragment();
+    this.projects.forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = String(p.id);
+      opt.textContent = p.name;
+      frag.appendChild(opt);
+    });
+    select.appendChild(frag);
+  }
+
+  populateFilters() {
+    const prFilter = document.getElementById('projectFilter');
+    const tgFilter = document.getElementById('tagFilter');
+    if (prFilter) {
+      const first = prFilter.querySelector('option');
+      prFilter.innerHTML = '';
+      if (first) prFilter.appendChild(first);
+      this.projects.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = String(p.id);
+        opt.textContent = p.name;
+        prFilter.appendChild(opt);
+      });
+    }
+    if (tgFilter) {
+      const first = tgFilter.querySelector('option');
+      tgFilter.innerHTML = '';
+      if (first) tgFilter.appendChild(first);
+      this.tags.forEach(t => {
+        const opt = document.createElement('option');
+        opt.value = String(t.id);
+        opt.textContent = t.name;
+        tgFilter.appendChild(opt);
+      });
+    }
   }
 
   updateFilterButtons() {
@@ -1069,7 +1163,132 @@ class TodoApp {
       }
     }
 
+    // project rendering
+    const projectEl = article.querySelector('.task__project');
+    if (projectEl) {
+      const pr = task.projectId ? this.projectMap.get(String(task.projectId)) : null;
+      if (pr) {
+        projectEl.textContent = `#${pr.name}`;
+        projectEl.dataset.projectId = String(task.projectId);
+        projectEl.style.display = 'inline';
+      } else {
+        projectEl.textContent = '';
+        projectEl.dataset.projectId = '';
+        projectEl.style.display = 'none';
+      }
+    }
+
+    // tags rendering placeholder (will be filled on open popover)
+    const labelsEl = article.querySelector('.task__labels');
+    if (labelsEl && task.tags && Array.isArray(task.tags)) {
+      labelsEl.innerHTML = '';
+      task.tags.forEach(tag => {
+        const el = document.createElement('span');
+        el.className = 'task__label';
+        el.textContent = tag.name;
+        labelsEl.appendChild(el);
+      });
+    }
+
     return taskElement;
+  }
+
+  // ----- Tags popover -----
+  async openTagsPopover(taskId, taskElement) {
+    try {
+      const tg = window.Telegram?.WebApp;
+      const headers = tg?.initData ? { 'x-telegram-init-data': tg.initData, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' };
+      const [current, all] = await Promise.all([
+        fetch(`/api/tasks/${taskId}/tags`, { headers }).then(r => r.ok ? r.json() : []),
+        this.tags?.length ? Promise.resolve(this.tags) : fetch('/api/tags', { headers }).then(r => r.ok ? r.json() : [])
+      ]);
+      if (!this.tags?.length) {
+        this.tags = Array.isArray(all) ? all : [];
+        this.tagMap = new Map(this.tags.map(t => [String(t.id), t]));
+      }
+      const currentIds = new Set((current || []).map(t => String(t.id)));
+      const choices = this.tags.map(t => ({ id: String(t.id), name: t.name, selected: currentIds.has(String(t.id)) }));
+      // Simple inline popover using prompt (Telegram Alert unavailable for multi-select)
+      const list = choices.map(c => `${c.selected ? '[x]' : '[ ]'} ${c.name}`).join('\n');
+      const toToggle = prompt(`Теги (введи номера через запятую для переключения)\n${choices.map((c,i)=>`${i+1}. ${c.name}${c.selected?' ✓':''}`).join('\n')}`);
+      if (!toToggle) return;
+      const idxs = toToggle.split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n) && n>=1 && n<=choices.length);
+      if (!idxs.length) return;
+      const headersJson = headers;
+      await Promise.all(idxs.map(i => {
+        const tag = choices[i-1];
+        if (tag.selected) {
+          return fetch(`/api/tasks/${taskId}/tags/${tag.id}`, { method: 'DELETE', headers: headersJson });
+        }
+        return fetch(`/api/tasks/${taskId}/tags`, { method: 'POST', headers: headersJson, body: JSON.stringify({ tag_id: tag.id }) });
+      }));
+      // refresh labels
+      const labelsEl = taskElement.querySelector('.task__labels');
+      if (labelsEl) {
+        const updated = await fetch(`/api/tasks/${taskId}/tags`, { headers }).then(r => r.ok ? r.json() : []);
+        labelsEl.innerHTML = '';
+        updated.forEach(tag => {
+          const el = document.createElement('span');
+          el.className = 'task__label';
+          el.textContent = tag.name;
+          labelsEl.appendChild(el);
+        });
+      }
+    } catch (_) {}
+  }
+
+  // ----- Comments -----
+  async toggleComments(taskId, taskElement) {
+    const box = taskElement.querySelector('.task__comments');
+    if (!box) return;
+    const hidden = box.hasAttribute('hidden');
+    if (hidden) {
+      await this.loadCommentsInto(taskId, box);
+      box.removeAttribute('hidden');
+      const form = box.querySelector('.task__comments-form');
+      if (form && !form._bound) {
+        form.addEventListener('submit', (e) => this.submitComment(e, taskId, box));
+        form._bound = true;
+      }
+    } else {
+      box.setAttribute('hidden', '');
+    }
+  }
+
+  async loadCommentsInto(taskId, box) {
+    try {
+      const tg = window.Telegram?.WebApp;
+      const headers = tg?.initData ? { 'x-telegram-init-data': tg.initData } : {};
+      const comments = await fetch(`/api/tasks/${taskId}/comments`, { headers }).then(r => r.ok ? r.json() : []);
+      const list = box.querySelector('.task__comments-list');
+      if (!list) return;
+      list.innerHTML = '';
+      comments.forEach(c => {
+        const item = document.createElement('div');
+        item.className = 'task__comment';
+        item.textContent = c.content;
+        list.appendChild(item);
+      });
+    } catch (_) {}
+  }
+
+  async submitComment(e, taskId, box) {
+    e.preventDefault();
+    try {
+      const input = box.querySelector('.task__comments-input');
+      const content = input?.value?.trim();
+      if (!content) return;
+      const tg = window.Telegram?.WebApp;
+      const headers = { 'Content-Type': 'application/json' };
+      if (tg?.initData) headers['x-telegram-init-data'] = tg.initData;
+      await fetch(`/api/tasks/${taskId}/comments`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ content })
+      });
+      input.value = '';
+      await this.loadCommentsInto(taskId, box);
+    } catch (_) {}
   }
 
   updateBulkActions() {
@@ -1190,6 +1409,7 @@ class TodoApp {
         }
       });
       this.tasks = Array.isArray(localTasks) ? localTasks : [];
+      this.render();
     } catch (error) {
       console.error('Failed to load tasks:', error);
       this.tasks = [];
